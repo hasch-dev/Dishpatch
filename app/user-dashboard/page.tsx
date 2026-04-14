@@ -13,14 +13,7 @@ interface Chef {
   display_name: string
   avatar_url: string
   location_address: string
-  chef_details: {
-    cuisine_types: string[]
-    experience_years: number
-    rating: number
-    total_bookings: number
-    hourly_rate: number
-    is_verified: boolean
-  }[]
+  chef_details: any[]
 }
 
 export default function DashboardPage() {
@@ -30,66 +23,58 @@ export default function DashboardPage() {
   const [userBookings, setUserBookings] = useState<any[]>([])
   const [searchCuisine, setSearchCuisine] = useState('')
   const [userType, setUserType] = useState<'user' | 'chef' | null>(null)
+
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
     const checkAuth = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
 
-        if (!user) {
-          router.push('/auth/login')
-          return
-        }
-
-        const userType =
-          (user.user_metadata?.user_type as 'user' | 'chef') || 'user'
-        setUserType(userType)
-        setUser(user)
-
-        // If regular user, fetch chefs and bookings
-        if (userType === 'user') {
-          await fetchChefs()
-          // Fetch user's bookings
-          try {
-            const response = await fetch('/api/bookings')
-            if (response.ok) {
-              const { data } = await response.json()
-              setUserBookings(data || [])
-            }
-          } catch (error) {
-            console.error('Error fetching bookings:', error)
-          }
-        } else {
-          // Redirect chefs to chef dashboard
-          router.push('/chef-dashboard')
-        }
-      } catch (error) {
-        console.error('Auth check error:', error)
-      } finally {
-        setIsLoading(false)
+      if (!user) {
+        router.push('/auth/login')
+        return
       }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', user.id)
+        .single()
+
+      const type = profile?.user_type || 'user'
+
+      setUserType(type)
+      setUser(user)
+
+      // ✅ Redirect chefs immediately
+      if (type === 'chef') {
+        router.push('/chef-dashboard')
+        return
+      }
+
+      await fetchChefs()
+
+      // ✅ FIX: pass user_id
+      const response = await fetch(`/api/bookings?user_id=${user.id}`)
+      if (response.ok) {
+        const { data } = await response.json()
+        setUserBookings(data || [])
+      }
+
+      setIsLoading(false)
     }
 
     checkAuth()
-  }, [supabase, router])
+  }, [])
 
   const fetchChefs = async (cuisine?: string) => {
-    try {
-      const params = new URLSearchParams()
-      if (cuisine) params.append('cuisine', cuisine)
+    const params = new URLSearchParams()
+    if (cuisine) params.append('cuisine', cuisine)
 
-      const response = await fetch(`/api/chefs?${params}`)
-      if (!response.ok) throw new Error('Failed to fetch chefs')
-
-      const { data } = await response.json()
-      setChefs(data || [])
-    } catch (error) {
-      console.error('Error fetching chefs:', error)
-    }
+    const response = await fetch(`/api/chefs?${params}`)
+    const { data } = await response.json()
+    setChefs(data || [])
   }
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -103,14 +88,7 @@ export default function DashboardPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-svh items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent" />
-          <p>Loading...</p>
-        </div>
-      </div>
-    )
+    return <div className="flex min-h-svh items-center justify-center">Loading...</div>
   }
 
   if (userType === 'chef') {
@@ -217,7 +195,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Rate</span>
                       <span className="font-medium">
-                        ${chef.chef_details[0].hourly_rate}/hr
+                        ${chef.chef_details[0].session_rate}/session
                       </span>
                     </div>
                     {chef.chef_details[0].cuisine_types.length > 0 && (

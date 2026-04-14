@@ -2,12 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
@@ -15,16 +10,8 @@ import { useEffect, useState } from 'react'
 import { PhilippinePeso, X } from 'lucide-react'
 
 const CUISINE_OPTIONS = [
-  'Italian',
-  'Japanese',
-  'Filipino',
-  'French',
-  'Chinese',
-  'Korean',
-  'Thai',
-  'Mediterranean',
-  'American',
-  'Indian',
+  'Italian','Japanese','Filipino','French','Chinese',
+  'Korean','Thai','Mediterranean','American','Indian',
 ]
 
 export default function ProfilePage() {
@@ -45,7 +32,7 @@ export default function ProfilePage() {
   const [chefDetails, setChefDetails] = useState({
     cuisine_types: [] as string[],
     experience_years: 0,
-    hourly_rate: 0,
+    session_rate: 0,
     chef_title: 'Chef',
     offers_consultation: false,
     consultation_rate: 0,
@@ -96,16 +83,30 @@ export default function ProfilePage() {
       const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+
         body: JSON.stringify({
-          ...profile,
+          display_name: profile.display_name,
+          bio: profile.bio,
+          phone: profile.phone,
+          location_address: profile.location_address,
           user_type: userType,
-          ...(userType === 'chef' && chefDetails),
+
+          ...(userType === 'chef' && {
+            cuisine_types: chefDetails.cuisine_types,
+            experience_years: chefDetails.experience_years,
+            session_rate: chefDetails.session_rate, // temp mapping
+            chef_title: chefDetails.chef_title,
+            offers_consultation: chefDetails.offers_consultation,
+            consultation_rate: chefDetails.consultation_rate,
+          }),
         }),
       })
 
       if (!res.ok) throw new Error()
 
-      router.push('/dashboard')
+      // ✅ FIX: correct redirect
+      router.push(userType === 'chef' ? '/chef-dashboard' : '/dashboard')
+
     } catch {
       setError('Failed to save profile')
     } finally {
@@ -313,16 +314,16 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Hourly Rate</Label>
+                    <Label>Session Rate</Label>
                     <div className="flex items-center gap-2">
                       <PhilippinePeso size={16} />
                       <Input
                         type="number"
-                        value={chefDetails.hourly_rate}
+                        value={chefDetails.session_rate}
                         onChange={(e) =>
                           setChefDetails({
                             ...chefDetails,
-                            hourly_rate: Number(e.target.value),
+                            session_rate: Number(e.target.value),
                           })
                         }
                       />

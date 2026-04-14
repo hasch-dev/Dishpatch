@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       .from('chats')
       .select(`
         *,
-        sender:profiles(display_name, avatar_url)
+        sender:master(display_name, avatar_url)
       `)
       .eq('booking_id', bookingId)
       .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)

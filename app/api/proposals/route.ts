@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         booking:bookings(user_id),
-        chef:profiles(display_name, avatar_url)
+        chef:master(display_name, avatar_url)
       `)
 
     if (bookingId) {
