@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { LogOut, PhilippinePeso } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChefHatIcon } from "@phosphor-icons/react";
 
 export default function ChefDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -115,7 +114,6 @@ export default function ChefDashboardPage() {
       <header className="border-b bg-background">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <ChefHatIcon />
             <h1 className="font-semibold">Chef Dashboard</h1>
           </div>
 
