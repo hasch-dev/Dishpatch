@@ -49,6 +49,7 @@ export default function BookingDetailPage() {
     menu_description: '',
     availability_notes: '',
   })
+
   const params = useParams()
   const bookingId = params.id as string
   const router = useRouter()
@@ -71,13 +72,11 @@ export default function BookingDetailPage() {
           (user.user_metadata?.user_type as 'user' | 'chef') || 'user'
         setUserType(userType)
 
-        // Fetch booking
         const bookingResponse = await fetch(`/api/bookings?bookingId=${bookingId}`)
         if (!bookingResponse.ok) throw new Error('Failed to fetch booking')
         const { data: bookingData } = await bookingResponse.json()
         setBooking(bookingData)
 
-        // Fetch proposals
         const proposalsResponse = await fetch(
           `/api/proposals?bookingId=${bookingId}`
         )
@@ -117,7 +116,6 @@ export default function BookingDetailPage() {
         throw new Error(data.error || 'Failed to lock deal')
       }
 
-      // Refresh booking
       const bookingResponse = await fetch(`/api/bookings?bookingId=${bookingId}`)
       const { data: bookingData } = await bookingResponse.json()
       setBooking(bookingData)
@@ -128,7 +126,8 @@ export default function BookingDetailPage() {
     }
   }
 
-
+  // ✅ FIXED: properly wrapped function
+  const handleSubmitProposal = async () => {
     setIsSaving(true)
     setError(null)
 
@@ -149,7 +148,6 @@ export default function BookingDetailPage() {
         throw new Error(data.error || 'Failed to submit proposal')
       }
 
-      // Refresh proposals
       const proposalsResponse = await fetch(
         `/api/proposals?bookingId=${bookingId}`
       )
@@ -205,7 +203,6 @@ export default function BookingDetailPage() {
         </Button>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {/* Booking Details */}
           <div className="md:col-span-2 space-y-6">
             <Card>
               <CardHeader>
@@ -264,7 +261,6 @@ export default function BookingDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Proposals Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Proposals ({proposals.length})</CardTitle>
@@ -323,7 +319,6 @@ export default function BookingDetailPage() {
             </Card>
           </div>
 
-          {/* Chef Proposal Form */}
           {userType === 'chef' && !isOwnBooking && (
             <div>
               <Card>
