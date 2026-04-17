@@ -9,6 +9,9 @@ const montserrat = Montserrat({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Dishpatch',
   description: 'Chef booking platform',
+  icons: {
+    
+  }
 }
 
 export default function RootLayout({

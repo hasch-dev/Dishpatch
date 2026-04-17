@@ -59,7 +59,7 @@ export default function Page() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -71,6 +71,15 @@ export default function Page() {
       })
 
       if (error) throw error
+
+      if (data.user) {
+        await supabase.from('master').insert({
+          id: data.user.id,
+          email,
+          display_name: displayName,
+          user_type: userType,
+        })
+      }
 
       router.push('/auth/sign-up-success')
     } catch (err: unknown) {

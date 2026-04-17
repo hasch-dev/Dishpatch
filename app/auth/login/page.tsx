@@ -35,7 +35,21 @@ export default function Page() {
 
       if (error) throw error
 
-      router.push('/dashboard')
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      const { data: profile } = await supabase
+        .from('master')
+        .select('user_type')
+        .eq('id', user?.id)
+        .single()
+
+      if (profile?.user_type === 'chef') {
+        router.push('/chef-dashboard')
+      } else {
+        router.push('/user-dashboard')
+      }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Login failed')
     } finally {
