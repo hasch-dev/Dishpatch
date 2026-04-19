@@ -1,62 +1,8 @@
-'use client'
-
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { LoginForm } from "@/components/login-form"
 
 export default function Page() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) throw error
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      const { data: profile } = await supabase
-        .from('master')
-        .select('user_type')
-        .eq('id', user?.id)
-        .single()
-
-      if (profile?.user_type === 'chef') {
-        router.push('/chef-dashboard')
-      } else {
-        router.push('/user-dashboard')
-      }
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'Login failed')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-svh flex">
 
@@ -94,67 +40,7 @@ export default function Page() {
             </Link>
           </div>
 
-          <Card className="border-none">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-center">
-                Login
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-8">
-
-                {/* EMAIL */}
-                <div>
-                  <Label className='pb-1'>Email</Label>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-
-                {/* PASSWORD */}
-                <div>
-                  <Label className='pb-1'>Password</Label>
-                  <Input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-
-                {/* ERROR */}
-                {error && (
-                  <p className="text-sm text-red-500">{error}</p>
-                )}
-
-                {/* LOGIN BUTTON */}
-                <Button
-                  type="submit"
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Logging in...' : 'Login'}
-                </Button>
-
-                {/* SIGN UP */}
-                <p className="text-center text-sm text-gray-500">
-                  Don&apos;t have an account?{' '}
-                  <Link
-                    href="/auth/sign-up"
-                    className="text-orange-500 font-semibold hover:underline"
-                  >
-                    Sign up
-                  </Link>
-                </p>
-
-              </form>
-            </CardContent>
-          </Card>
+          <LoginForm/>
 
         </div>
       </div>

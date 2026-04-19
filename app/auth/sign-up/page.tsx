@@ -62,24 +62,9 @@ export default function Page() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            display_name: displayName,
-            user_type: userType,
-          },
-        },
       })
 
       if (error) throw error
-
-      if (data.user) {
-        await supabase.from('master').insert({
-          id: data.user.id,
-          email,
-          display_name: displayName,
-          user_type: userType,
-        })
-      }
 
       router.push('/auth/sign-up-success')
     } catch (err: unknown) {
@@ -194,7 +179,7 @@ export default function Page() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-7 text-muted-foreground"
+                className="absolute right-3 top-38px text-muted-foreground"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
