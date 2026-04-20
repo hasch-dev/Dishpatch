@@ -63,6 +63,12 @@ export default function Page() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            display_name: displayName,
+            user_type: userType,
+          }
+        }
       })
 
       if (error) throw error
