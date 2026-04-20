@@ -22,8 +22,6 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const errorUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const errorKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   const router = useRouter()
 
@@ -217,9 +215,6 @@ export default function Page() {
               <p className="text-sm text-red-500">{error}</p>
               
             )}
-
-            <p>{errorUrl}</p>
-            <p>{errorKey}</p>
 
             {/* BUTTON */}
             <Button
