@@ -1,286 +1,477 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function CreateBookingPage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [userType, setUserType] = useState<'user' | 'chef' | null>(null)
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    event_date: '',
-    event_time: '',
-    guest_count: 1,
-    dietary_restrictions: '',
-    budget: '',
-    location_address: '',
-    location_lat: 0,
-    location_lng: 0,
-  })
+export default function NewBookingPage() {
   const router = useRouter()
   const supabase = createClient()
+  const searchParams = useSearchParams()
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+  const bookingType = searchParams.get('type') || 'event'
+  const isConsultation = bookingType === 'consultation'
 
-        if (!user) {
-          router.push('/auth/login')
-          return
-        }
+  const [step, setStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-        const userType =
-          (user.user_metadata?.user_type as 'user' | 'chef') || 'user'
+  // ================= BASE FIELDS =================
+  const [title, setTitle] = useState('')
+  const [eventDate, setEventDate] = useState('')
+  const [location, setLocation] = useState('')
 
-        if (userType !== 'user') {
-          router.push('/dashboard')
-          return
-        }
+  // EVENT ONLY
+  const [guestCountMin, setGuestCountMin] = useState(1)
+  const [guestCountMax, setGuestCountMax] = useState(5)
 
-        setUserType(userType)
-      } catch (error) {
-        console.error('Auth check error:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  // EVENT + FOOD
+  const [allergies, setAllergies] = useState('')
+  const [ingredientMode, setIngredientMode] = useState<'chef' | 'user'>('chef')
 
-    checkAuth()
-  }, [supabase, router])
+  // CONSULTATION ONLY (UPDATED: single select)
+  const [selectedTopic, setSelectedTopic] = useState<string>('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSaving(true)
+  const [durationValue, setDurationValue] = useState(1)
+  const [durationUnit, setDurationUnit] = useState<'day' | 'week' | 'month' | 'custom'>('day')
+
+  const consultationTopics = [
+    'Menu planning',
+    'Private dining setup',
+    'Restaurant concept development',
+    'Kitchen workflow optimization',
+    'Chef training',
+    'Food costing',
+    'Catering business advice',
+    'Ingredient sourcing',
+    'Wine pairing',
+    'Nutrition planning',
+  ]
+
+  const handleSubmit = async () => {
+    setLoading(true)
     setError(null)
 
-    try {
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          guest_count: parseInt(formData.guest_count),
-          budget: formData.budget ? parseFloat(formData.budget) : null,
-        }),
-      })
+    const { data: { user } } = await supabase.auth.getUser()
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to create booking')
-      }
-
-      const { data } = await response.json()
-      router.push(`/booking/${data.id}`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create booking')
-    } finally {
-      setIsSaving(false)
+    if (!user) {
+      router.push('/auth/login')
+      return
     }
+
+    const { error } = await supabase.from('bookings').insert({
+      user_id: user.id,
+      title,
+      event_date: eventDate,
+      booking_type: bookingType,
+      guest_count: isConsultation ? null : null,
+
+      notes: JSON.stringify({
+        location,
+        allergies,
+        ingredientMode: isConsultation ? null : ingredientMode,
+        type: bookingType,
+
+        guestRange: isConsultation
+          ? null
+          : { min: guestCountMin, max: guestCountMax },
+
+        consultation: isConsultation
+          ? {
+              topic: selectedTopic, // ✅ SINGLE VALUE NOW
+              duration: {
+                value: durationValue,
+                unit: durationUnit,
+              },
+            }
+          : null,
+      }),
+
+      status: 'pending_assignment',
+      chef_id: null,
+    })
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+
+    router.push('/user-dashboard')
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-svh items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent" />
-          <p>Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (userType !== 'user') {
-    return (
-      <div className="flex min-h-svh items-center justify-center">
-        <p className="text-muted-foreground">
-          Only users can create booking requests
-        </p>
-      </div>
-    )
-  }
+  const StepCircle = ({
+    number,
+    active,
+    done,
+  }: {
+    number: number
+    active: boolean
+    done: boolean
+  }) => (
+    <div
+      className={`
+        w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold
+        transition-all
+        ${
+          done
+            ? 'bg-orange-500 text-white'
+            : active
+            ? 'bg-orange-500 text-white ring-4 ring-orange-200'
+            : 'bg-gray-200 text-gray-500'
+        }
+      `}
+    >
+      {number}
+    </div>
+  )
 
   return (
-    <div className="min-h-svh bg-background py-12 px-4 md:px-6">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Request a Chef</h1>
-          <p className="text-muted-foreground">
-            Tell chefs about your event and get proposals
-          </p>
+    <div className="min-h-svh flex flex-col bg-white">
+
+      {/* TOP BAR */}
+      <div className="flex justify-between items-center px-6 py-4 border-b">
+        <Button variant="outline" className='cursor-pointer' onClick={() => router.push('/user-dashboard')}>
+          Back to Dashboard
+        </Button>
+
+        <div className="text-sm text-muted-foreground">
+          {isConsultation ? 'Consultation Booking' : 'Event Booking'}
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Event Details</CardTitle>
-            <CardDescription>
-              Provide information about your catering event
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Title */}
-              <div className="grid gap-2">
-                <Label htmlFor="title">Event Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  placeholder="Birthday party, Wedding, Dinner party, etc."
-                  required
-                />
-              </div>
-
-              {/* Description */}
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="Tell chefs about your event, theme, preferences, etc."
-                  className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-
-              {/* Event Date */}
-              <div className="grid gap-2">
-                <Label htmlFor="event-date">Event Date</Label>
-                <Input
-                  id="event-date"
-                  type="date"
-                  value={formData.event_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, event_date: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              {/* Event Time */}
-              <div className="grid gap-2">
-                <Label htmlFor="event-time">Event Time</Label>
-                <Input
-                  id="event-time"
-                  type="time"
-                  value={formData.event_time}
-                  onChange={(e) =>
-                    setFormData({ ...formData, event_time: e.target.value })
-                  }
-                />
-              </div>
-
-              {/* Guest Count */}
-              <div className="grid gap-2">
-                <Label htmlFor="guest-count">Number of Guests</Label>
-                <Input
-                  id="guest-count"
-                  type="number"
-                  min="1"
-                  max="1000"
-                  value={formData.guest_count}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      guest_count: parseInt(e.target.value) || 1,
-                    })
-                  }
-                />
-              </div>
-
-              {/* Budget */}
-              <div className="grid gap-2">
-                <Label htmlFor="budget">Budget ($)</Label>
-                <Input
-                  id="budget"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.budget}
-                  onChange={(e) =>
-                    setFormData({ ...formData, budget: e.target.value })
-                  }
-                  placeholder="Leave blank for no specific budget"
-                />
-              </div>
-
-              {/* Dietary Restrictions */}
-              <div className="grid gap-2">
-                <Label htmlFor="dietary">Dietary Restrictions</Label>
-                <textarea
-                  id="dietary"
-                  value={formData.dietary_restrictions}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      dietary_restrictions: e.target.value,
-                    })
-                  }
-                  placeholder="Vegan, gluten-free, allergies, etc."
-                  className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-              </div>
-
-              {/* Location */}
-              <div className="grid gap-2">
-                <Label htmlFor="location">Event Location</Label>
-                <Input
-                  id="location"
-                  value={formData.location_address}
-                  onChange={(e) =>
-                    setFormData({ ...formData, location_address: e.target.value })
-                  }
-                  placeholder="Address or location description"
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <Button
-                  type="submit"
-                  disabled={isSaving}
-                  className="flex-1"
-                >
-                  {isSaving ? 'Creating...' : 'Create Booking Request'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* STEP INDICATOR */}
+      <div className="flex justify-center items-center gap-6 py-6">
+        <StepCircle number={1} active={step === 1} done={step > 1} />
+        <div className="w-8 h-1 bg-gray-200" />
+        <StepCircle number={2} active={step === 2} done={step > 2} />
+        <div className="w-8 h-1 bg-gray-200" />
+        <StepCircle number={3} active={step === 3} done={false} />
+      </div>
+
+      {/* CONTENT */}
+      <div className="flex-1 flex justify-center px-4">
+        <div className="w-full max-w-2xl space-y-10">
+
+          {error && (
+            <p className="text-red-500 text-sm text-center">{error}</p>
+          )}
+
+          {/* ================= STEP 1 ================= */}
+          {step === 1 && (
+            <div className="space-y-8">
+
+              <div className="text-center">
+                <h1 className="text-3xl font-bold">
+                  {isConsultation ? 'Book a Consultation' : 'Plan your event'}
+                </h1>
+                <p className="text-muted-foreground mt-2">
+                  Tell us the basics
+                </p>
+              </div>
+
+              <div className="space-y-5">
+
+                <div className="space-y-2">
+                  <Label>{isConsultation ? 'Session Title' : 'Event Title'}</Label>
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+                </div>
+
+                {!isConsultation && (
+                  <div className="space-y-2">
+                    <Label>Guests</Label>
+                    <div className="flex flex-row gap-4 items-center justify-center">
+                      <Input type="number" value={guestCountMin} onChange={(e) => setGuestCountMin(Number(e.target.value))} />
+                      <p>to</p>
+                      <Input type="number" value={guestCountMax} onChange={(e) => setGuestCountMax(Number(e.target.value))} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Location</Label>
+                  <Input value={location} onChange={(e) => setLocation(e.target.value)} />
+                </div>
+
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={() => setStep(2)} className="bg-orange-500 text-white cursor-pointer">
+                  Continue
+                </Button>
+              </div>
+
+            </div>
+          )}
+
+          {/* ================= STEP 2 (EVENT) ================= */}
+          {!isConsultation && step === 2 && (
+            <div className="space-y-10">
+
+              <div className="text-center">
+                <h1 className="text-3xl font-bold">Preferences</h1>
+                <p className="text-muted-foreground mt-2">
+                  Help us tailor your dining experience
+                </p>
+              </div>
+
+              <div className="space-y-4">
+
+                <Label>Allergies</Label>
+
+                <Input
+                  value={allergies}
+                  onChange={(e) => setAllergies(e.target.value)}
+                  placeholder="e.g. peanuts, shellfish..."
+                />
+
+              </div>
+
+              <div className="space-y-4">
+
+                <Label>Ingredient Choice</Label>
+
+                <div className="flex gap-4">
+
+                  <div
+                    onClick={() => setIngredientMode('chef')}
+                    className={`flex-1 cursor-pointer border rounded-xl p-5 ${
+                      ingredientMode === 'chef'
+                        ? 'border-orange-500 bg-orange-50'
+                        : ''
+                    }`}
+                  >
+                    <h3 className="font-semibold">Chef chooses 👍</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Let the chef design the menu
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => setIngredientMode('user')}
+                    className={`flex-1 cursor-pointer border rounded-xl p-5 ${
+                      ingredientMode === 'user'
+                        ? 'border-orange-500 bg-orange-50'
+                        : ''
+                    }`}
+                  >
+                    <h3 className="font-semibold">I choose</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Full control over ingredients
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+                <Button onClick={() => setStep(3)} className="bg-orange-500 text-white cursor-pointer">
+                  Continue
+                </Button>
+              </div>
+
+            </div>
+          )}
+
+          {/* ================= STEP 2 (CONSULTATION FIXED) ================= */}
+          {isConsultation && step === 2 && (
+            <div className="space-y-12">
+
+              {/* HEADER */}
+              <div className="text-center space-y-2">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  What do you need help with?
+                </h1>
+                <p className="text-muted-foreground">
+                  Choose one focus so we can match you with the right chef consultant
+                </p>
+              </div>
+
+              {/* TOPIC GRID */}
+              <div className="grid grid-cols-2 gap-4">
+
+                {consultationTopics.map((topic) => {
+                  const isActive = selectedTopic === topic
+
+                  return (
+                    <div
+                      key={topic}
+                      onClick={() => setSelectedTopic(topic)}
+                      className={`
+                        cursor-pointer rounded-2xl border p-5 transition-all
+                        hover:-translate-y-0.5 hover:shadow-md
+                        active:scale-[0.99]
+                        ${
+                          isActive
+                            ? 'border-orange-500 bg-orange-50 shadow-sm'
+                            : 'border-gray-200 hover:border-orange-200 bg-white'
+                        }
+                      `}
+                    >
+                      <div className="space-y-2">
+
+                        <div className="flex items-start justify-between gap-3">
+
+                          <p className="text-sm font-semibold leading-snug">
+                            {topic}
+                          </p>
+
+                          {isActive && (
+                            <span className="text-orange-500 text-xs font-semibold">
+                              Selected
+                            </span>
+                          )}
+
+                        </div>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+
+                          {topic === 'Menu planning' &&
+                            'Build structured menus tailored to events, guests, or restaurant concepts.'}
+
+                          {topic === 'Private dining setup' &&
+                            'Design high-end private dining experiences from setup to execution.'}
+
+                          {topic === 'Restaurant concept development' &&
+                            'Create a strong identity, direction, and strategy for your restaurant.'}
+
+                          {topic === 'Kitchen workflow optimization' &&
+                            'Improve speed, efficiency, and organization inside your kitchen.'}
+
+                          {topic === 'Chef training' &&
+                            'Train chefs on techniques, consistency, plating, and kitchen discipline.'}
+
+                          {topic === 'Food costing' &&
+                            'Understand pricing, margins, and cost control for profitability.'}
+
+                          {topic === 'Catering business advice' &&
+                            'Scale or launch a catering business with proper systems and structure.'}
+
+                          {topic === 'Ingredient sourcing' &&
+                            'Find better suppliers and improve ingredient quality and consistency.'}
+
+                          {topic === 'Wine pairing' &&
+                            'Match dishes with wines to elevate dining experiences.'}
+
+                          {topic === 'Nutrition planning' &&
+                            'Design balanced menus aligned with dietary and health goals.'}
+
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+
+              </div>
+
+              {/* DURATION MODULE */}
+              <div className="border rounded-2xl p-6 bg-white space-y-5">
+
+                <div>
+                  <h3 className="font-semibold text-base">Consultation duration</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Minimum 1 unit required — scale up depending on your project complexity
+                  </p>
+                </div>
+
+                <div className="flex gap-3 items-center">
+
+                  <Input
+                    type="number"
+                    min={1}
+                    value={durationValue}
+                    onChange={(e) => setDurationValue(Number(e.target.value))}
+                    className="h-11 w-24"
+                  />
+
+                  <select
+                    className="h-11 border rounded-lg px-3 bg-white"
+                    value={durationUnit}
+                    onChange={(e) => setDurationUnit(e.target.value as any)}
+                  >
+                    <option value="day">Days</option>
+                    <option value="week">Weeks</option>
+                    <option value="month">Months</option>
+                    <option value="custom">Custom</option>
+                  </select>
+
+                </div>
+
+              </div>
+
+              {/* NAV */}
+              <div className="flex justify-between pt-2">
+
+                <Button variant="outline" onClick={() => setStep(1)} className='cursor-pointer'>
+                  Back
+                </Button>
+
+                <Button
+                  onClick={() => setStep(3)}
+                  disabled={!selectedTopic}
+                  className="bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
+                >
+                  Continue
+                </Button>
+
+              </div>
+
+            </div>
+          )}
+
+          {/* ================= STEP 3 ================= */}
+          {step === 3 && (
+            <div className="space-y-8">
+
+              <div className="text-center">
+                <h1 className="text-3xl font-bold">Review</h1>
+              </div>
+
+              <div className="border rounded-xl p-6 space-y-2">
+
+                <p><strong>Type:</strong> {bookingType}</p>
+                <p><strong>Title:</strong> {title}</p>
+                <p><strong>Date:</strong> {eventDate}</p>
+                <p><strong>Location:</strong> {location}</p>
+
+                {!isConsultation ? (
+                  <>
+                    <p><strong>Guests:</strong> {guestCountMin} - {guestCountMax}</p>
+                    <p><strong>Ingredient Mode:</strong> {ingredientMode}</p>
+                  </>
+                ) : (
+                  <>
+                    <p><strong>Topic:</strong> {selectedTopic}</p>
+                    <p><strong>Duration:</strong> {durationValue} {durationUnit}</p>
+                  </>
+                )}
+
+              </div>
+
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+                <Button onClick={handleSubmit} disabled={loading} className="bg-orange-500 text-white cursor-pointer">
+                  {loading ? 'Creating...' : 'Confirm Booking'}
+                </Button>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+      </div>
+
     </div>
   )
 }

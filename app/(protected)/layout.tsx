@@ -36,6 +36,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"
+    async
+  ></script>
   return (
     <div lang="en">
       <div className="font-sans antialiased">
