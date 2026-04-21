@@ -7,10 +7,12 @@ import { PasswordStrengthIndicator } from '@/components/password-strength-indica
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
+import { User, ChefHat } from "lucide-react"
 
 export default function Page() {
   const [email, setEmail] = useState('')
@@ -85,7 +87,7 @@ export default function Page() {
     <div className="min-h-svh flex">
 
       {/* LEFT SIDE */}
-      <div className="hidden md:flex flex-1 bg-orange-500 text-white flex-col justify-center px-16 gap-16">
+      <div className="hidden mx-auto md:flex flex-1 bg-orange-500 text-white flex-col justify-center px-16 gap-16">
         <div>
           <h1 className="text-5xl font-bold mb-4">
             Start Your Culinary Journey
@@ -107,7 +109,7 @@ export default function Page() {
       </div>
 
       {/* RIGHT SIDE */}
-      <div className="flex-1 flex items-center justify-center px-6 ">
+      <div className="flex-1 flex items-center justify-center p-12">
         <div className="w-full max-w-md">
 
           {/* MOBILE BACK */}
@@ -120,7 +122,7 @@ export default function Page() {
           </div>
 
           {/* FORM (NO CARD = CLEAN) */}
-          <form onSubmit={handleSignUp} className="space-y-6">
+          <form onSubmit={handleSignUp} className="space-y-8">
 
             <h2 className="text-3xl font-bold text-center mb-2">
               Create Account
@@ -138,17 +140,37 @@ export default function Page() {
 
             {/* ACCOUNT TYPE */}
             <div>
-              <Label className='mb-1'>Account Type</Label>
-              <select
-                className="w-full border rounded-md px-3 py-2 text-sm"
+              <Label className='mb-2'>Account Type</Label>              
+              <RadioGroup
                 value={userType}
-                onChange={(e) =>
-                  setUserType(e.target.value as 'user' | 'chef')
+                onValueChange={(value) =>
+                  setUserType(value as "user" | "chef")
                 }
+                className="grid gap-3 flex flex-row"
               >
-                <option value="user">Looking for a chef</option>
-                <option value="chef">I&apos;m a chef</option>
-              </select>
+                <Label
+                  htmlFor="user"
+                  className={`flex items-center cursor-pointer gap-3 w-full rounded-lg border p-4 cursor-pointer transition ${
+                    userType === "user" ? "border-primary bg-muted" : ""
+                  }`}
+                >
+                  <RadioGroupItem value="user" id="user" />
+                  <User className="w-5 h-5" />
+                  <span>Looking for a chef</span>
+                </Label>
+
+                <Label
+                  htmlFor="chef"
+                  className={`flex items-center cursor-pointer gap-3 w-full
+                     rounded-lg border p-4 cursor-pointer transition ${
+                    userType === "chef" ? "border-primary bg-muted" : ""
+                  }`}
+                >
+                  <RadioGroupItem value="chef" id="chef" />
+                  <ChefHat className="w-5 h-5" />
+                  <span>I&apos;m a chef</span>
+                </Label>
+              </RadioGroup>
             </div>
 
             {/* EMAIL */}
@@ -180,13 +202,13 @@ export default function Page() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pr-10"
+                className="pr-10 mb-4"
               />
 
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-38px text-muted-foreground"
+                className="absolute right-3 top-6.5 text-muted-foreground"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
