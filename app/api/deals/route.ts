@@ -3,23 +3,20 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
-  
+
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
     const { bookingId, proposalId, chefId } = body
 
-    // Get booking to verify user is the requester
+    // Validate booking ownership
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .select('*')
@@ -27,13 +24,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (bookingError || !booking || booking.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get proposal to get pricing
+    // Get proposal
     const { data: proposal, error: proposalError } = await supabase
       .from('proposals')
       .select('*')
@@ -47,17 +41,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calculate deposit (50% of proposed price)
     const depositAmount = proposal.proposed_price / 2
 
-    // Create deal
     const { data, error } = await supabase
       .from('deals')
       .insert({
         booking_id: bookingId,
         proposal_id: proposalId,
         chef_id: chefId,
-        user_id: user.id,
         agreed_price: proposal.proposed_price,
         deposit_amount: depositAmount,
         final_amount: proposal.proposed_price - depositAmount,
@@ -69,13 +60,16 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
-    // Update booking status
+    // Update booking
     await supabase
       .from('bookings')
-      .update({ status: 'deal_locked', chef_id: chefId })
+      .update({
+        status: 'deal_locked',
+        chef_id: chefId,
+      })
       .eq('id', bookingId)
 
-    // Update proposal status to accepted
+    // Update proposal
     await supabase
       .from('proposals')
       .update({ status: 'accepted' })
@@ -93,36 +87,34 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
-  
+
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const bookingId = searchParams.get('bookingId')
 
-    let query = supabase
-      .from('deals')
-      .select('*')
+    let query = supabase.from('deals').select('*')
 
     if (bookingId) {
       query = query.eq('booking_id', bookingId)
     } else {
-      // Get deals for current user
-      query = query.or(`chef_id.eq.${user.id},user_id.eq.${user.id}`)
+      // ✅ SAFE (no user_id assumption)
+      query = query.eq('chef_id', user.id)
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false })
+    const { data, error } = await query.order('created_at', {
+      ascending: false,
+    })
 
     if (error) throw error
+
     return NextResponse.json({ data })
   } catch (error) {
     console.error('Deals fetch error:', error)
@@ -135,17 +127,14 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const supabase = await createClient()
-  
+
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -162,6 +151,7 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (error) throw error
+
     return NextResponse.json({ data })
   } catch (error) {
     console.error('Deal update error:', error)

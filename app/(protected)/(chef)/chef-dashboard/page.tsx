@@ -18,9 +18,10 @@ export default function ChefDashboardPage() {
   const [profile, setProfile] = useState<any>(null);
   const [chefDetails, setChefDetails] = useState<any>(null);
 
-  const [activeTab, setActiveTab] = useState<"pending" | "deals" | "completed">(
-    "pending",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "pending" | "deals" | "completed" | "cancelled"
+  >("pending");
+
   const [search, setSearch] = useState("");
 
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function ChefDashboardPage() {
 
   const completedDeals = deals.filter((d) => d.deposit_paid && d.final_paid);
   const pendingProposals = proposals.filter((p) => p.status === "pending");
+  const cancelledProposals = proposals.filter((p) => p.status === "cancelled");
 
   useEffect(() => {
     const loadData = async () => {
@@ -52,7 +54,6 @@ export default function ChefDashboardPage() {
 
       if (chefData) setChefDetails(chefData);
 
-      // ✅ FIX: pass chef_id to API
       const proposalsRes = await fetch(`/api/proposals?chef_id=${user.id}`);
       const dealsRes = await fetch(`/api/deals?chef_id=${user.id}`);
 
@@ -71,6 +72,19 @@ export default function ChefDashboardPage() {
 
     loadData();
   }, []);
+
+  const cancelBooking = async (bookingId: string) => {
+    await supabase
+      .from("bookings")
+      .update({ status: "cancelled", chef_id: null })
+      .eq("id", bookingId);
+
+    setProposals((prev) =>
+      prev.map((p) =>
+        p.booking_id === bookingId ? { ...p, status: "cancelled" } : p,
+      ),
+    );
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -92,13 +106,21 @@ export default function ChefDashboardPage() {
     }
 
     if (activeTab === "deals") {
-      return deals.filter((d) => d.booking.title.toLowerCase().includes(term));
+      return deals.filter((d) =>
+        d.booking.title.toLowerCase().includes(term),
+      );
+    }
+
+    if (activeTab === "cancelled") {
+      return cancelledProposals.filter((p) =>
+        p.booking.title.toLowerCase().includes(term),
+      );
     }
 
     return completedDeals.filter((d) =>
       d.booking.title.toLowerCase().includes(term),
     );
-  }, [search, activeTab, pendingProposals, deals, completedDeals]);
+  }, [search, activeTab, pendingProposals, deals, completedDeals, cancelledProposals]);
 
   if (isLoading) {
     return (
@@ -109,7 +131,7 @@ export default function ChefDashboardPage() {
   }
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
+    <div className="min-h-svh w-full bg-background text-foreground">
       {/* HEADER */}
       <header className="border-b bg-background">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
@@ -137,7 +159,6 @@ export default function ChefDashboardPage() {
         <div className="grid lg:grid-cols-[260px_1fr] gap-4">
           {/* LEFT SIDE */}
           <div className="space-y-3">
-            {/* PROFILE CARD */}
             <Card className="border rounded-lg">
               <CardContent className="p-4 space-y-2">
                 <p className="text-sm font-medium">
@@ -170,7 +191,6 @@ export default function ChefDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* STATS */}
             <Card className="border rounded-lg">
               <CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">Pending</p>
@@ -226,14 +246,32 @@ export default function ChefDashboardPage() {
                 >
                   Completed ({completedDeals.length})
                 </Button>
+
+                <Button
+                  size="sm"
+                  variant={activeTab === "cancelled" ? "default" : "outline"}
+                  onClick={() => setActiveTab("cancelled")}
+                >
+                  Cancelled ({cancelledProposals.length})
+                </Button>
               </div>
 
-              <Input
-                placeholder="Search client / booking..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="max-w-xs"
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search client / booking..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="max-w-xs"
+                />
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/requests")}
+                >
+                  Find a Client
+                </Button>
+              </div>
             </div>
 
             {/* CONTENT */}
@@ -268,18 +306,6 @@ export default function ChefDashboardPage() {
                             {item.booking.event_date}
                           </p>
 
-                          {"proposed_price" in item && (
-                            <p className="text-primary text-sm font-semibold">
-                              ₱{item.proposed_price.toFixed(2)}
-                            </p>
-                          )}
-
-                          {"agreed_price" in item && (
-                            <p className="text-primary text-sm font-semibold">
-                              ₱{item.agreed_price.toFixed(2)}
-                            </p>
-                          )}
-
                           <Link href={`/booking/${item.booking_id}`}>
                             <Button
                               size="sm"
@@ -289,6 +315,17 @@ export default function ChefDashboardPage() {
                               View
                             </Button>
                           </Link>
+
+                          {activeTab !== "cancelled" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full mt-2"
+                              onClick={() => cancelBooking(item.booking_id)}
+                            >
+                              Cancel
+                            </Button>
+                          )}
                         </CardContent>
                       </Card>
                     ))

@@ -2,8 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import '@/app/globals.css'
-import Navbar from '@/components/navbar';
-import Footer from '@/components/footer';
+
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -36,22 +35,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"
-    async
-  ></script>
   return (
-    <div lang="en">
-      <div className="font-sans antialiased">
-            <div className="p-4 top-0 left-0 right-0 z-10 bg-transparent w-auto">
-
-                <div className="flex-1">
-                    {children}
-                </div>
-            </div>
-            <Footer />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+      <div lang="en">
+        <div className="font-sans antialiased">
+              <div className="p-4 top-0 left-0 right-0 z-10 bg-transparent w-auto">
+                  <div className="flex-1">
+                      {children}     
+                  </div>
+              </div>
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </div>
       </div>
-    </div>
   )
 }

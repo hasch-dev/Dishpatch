@@ -3,22 +3,18 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
-  
+
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    
-    // Create proposal
+
     const { data, error } = await supabase
       .from('proposals')
       .insert({
@@ -31,10 +27,10 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single()
-    
+
     if (error) throw error
 
-    // Update booking status if this is first proposal
+    // Update booking only if needed
     const { data: booking } = await supabase
       .from('bookings')
       .select('status')
@@ -60,41 +56,44 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
-  
+
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const bookingId = searchParams.get('bookingId')
 
-    let query = supabase
-      .from('proposals')
-      .select(`
-        *,
-        booking:bookings(user_id),
-        chef:master(display_name, avatar_url)
-      `)
+    let query = supabase.from('proposals').select(`
+      *,
+      booking:bookings(user_id),
+      chef:master(display_name, avatar_url)
+    `)
 
     if (bookingId) {
       query = query.eq('booking_id', bookingId)
-    } else {
-      // Get proposals for the current user (either as recipient or sender)
-      query = query.or(`chef_id.eq.${user.id},booking.user_id.eq.${user.id}`)
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false })
+    const { data, error } = await query.order('created_at', {
+      ascending: false,
+    })
 
     if (error) throw error
-    return NextResponse.json({ data })
+
+    // ✅ SAFE FILTERING (NO .or())
+    const filtered = (data || []).filter((p) => {
+      return (
+        p.chef_id === user.id ||
+        p.booking?.user_id === user.id
+      )
+    })
+
+    return NextResponse.json({ data: filtered })
   } catch (error) {
     console.error('Proposals fetch error:', error)
     return NextResponse.json(
@@ -106,23 +105,19 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const supabase = await createClient()
-  
+
   try {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
     const { proposalId, status } = body
 
-    // Update proposal status
     const { data, error } = await supabase
       .from('proposals')
       .update({ status })
