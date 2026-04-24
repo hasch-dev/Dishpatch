@@ -3,11 +3,17 @@
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { 
-  Plus, Calendar, Users, ChefHat, X, Utensils,
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle, 
+  SheetFooter 
+} from "@/components/ui/sheet"
+import { 
+  Plus, Calendar, Users, ChefHat, Utensils,
   CheckCircle2, Clock, Trash2, ArrowUpRight,
-  ChevronRight, Search
+  ChevronRight, Search, MapPin
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -35,7 +41,10 @@ export default function DashboardPage() {
       if (!user) { router.push('/auth/login'); return }
       
       const response = await fetch(`/api/bookings?user_id=${user.id}`)
-      if (response.ok) { const { data } = await response.json(); setUserBookings(data || []) }
+      if (response.ok) { 
+        const { data } = await response.json()
+        setUserBookings(data || []) 
+      }
       setIsLoading(false)
     }
     checkAuth()
@@ -64,12 +73,13 @@ export default function DashboardPage() {
   if (isLoading) return <div className="w-full h-screen p-8 animate-pulse bg-slate-50/50" />
 
   return (
-    <div className="w-full min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-orange-100">
+    <div className="w-full min-h-screen bg-[#F8FAFC] text-slate-900 selection:bg-orange-100 font-sans">
       
+      {/* NAVBAR */}
       <nav className="w-full border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="px-6 flex items-center justify-between h-14">
           <div className="flex items-center gap-4">
-            <h1 className="text-sm font-bold tracking-tight text-slate-900">Dashboard</h1>
+            <h1 className="text-lg font-bold tracking-tight text-slate-900">Dashboard</h1>
             <div className="h-4 w-px bg-slate-200 hidden sm:block" />
             <p className="text-xs text-slate-500 hidden sm:block">Manage your culinary experiences</p>
           </div>
@@ -84,7 +94,7 @@ export default function DashboardPage() {
 
       <main className="p-6 lg:p-10 space-y-10 max-w-[1400px] mx-auto">
         
-        {/* STATS SECTION */}
+        {/* STATS */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: 'Upcoming', val: userBookings.filter(b => b.status === 'confirmed').length, icon: CheckCircle2, color: 'text-emerald-500' },
@@ -117,7 +127,6 @@ export default function DashboardPage() {
                 onClick={() => setSelectedBooking(booking)}
                 className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all cursor-pointer hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-900/5 hover:-translate-y-0.5 active:scale-[0.98]"
               >
-                {/* Header Area */}
                 <div className="p-5 pb-0 flex justify-between items-start">
                   <div className="space-y-3">
                     {getStatusBadge(booking.status)}
@@ -125,17 +134,14 @@ export default function DashboardPage() {
                       {booking.title}
                     </h4>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                     <button 
-                      onClick={(e) => handleCancel(e, booking.id)}
-                      className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  <button 
+                    onClick={(e) => handleCancel(e, booking.id)}
+                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
 
-                {/* Details Bar */}
                 <div className="px-5 py-6 grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
@@ -143,7 +149,9 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Date</p>
-                      <p className="text-[13px] font-semibold text-slate-700">{new Date(booking.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
+                      <p className="text-[13px] font-semibold text-slate-700">
+                        {new Date(booking.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -157,7 +165,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Footer / Chef Info */}
                 <div className="px-5 py-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className={`h-6 w-6 rounded-full flex items-center justify-center border ${booking.chef_id ? 'bg-emerald-100 border-emerald-200' : 'bg-white border-slate-200'}`}>
@@ -175,23 +182,69 @@ export default function DashboardPage() {
         </section>
       </main>
 
-      {/* DRAWER REMAINS CONSISTENT */}
+      {/* DRAWER / SIDE SUMMARY */}
       <Sheet open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
-        <SheetContent className="w-full sm:max-w-md bg-white p-0 flex flex-col">
-          <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight">Booking Summary</h2>
-            <button onClick={() => setSelectedBooking(null)} className="text-slate-400 hover:text-slate-900"><X className="h-5 w-5" /></button>
-          </div>
-          <div className="flex-1 p-8 space-y-10 overflow-y-auto">
-             <div className="space-y-2">
-              {selectedBooking && getStatusBadge(selectedBooking.status)}
-              <h3 className="text-2xl font-bold text-slate-900">{selectedBooking?.title}</h3>
+        <SheetContent className="w-full sm:max-w-md bg-white p-0 flex flex-col border-l border-slate-200">
+          
+          <SheetHeader className="p-8 border-b border-slate-100">
+            <SheetTitle className="text-xl font-bold tracking-tight text-slate-900">
+              Booking Summary
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="flex-1 p-8 space-y-8 overflow-y-auto">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                {selectedBooking && getStatusBadge(selectedBooking.status)}
+                <p className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> Private Event
+                </p>
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 leading-tight">
+                {selectedBooking?.title}
+              </h3>
             </div>
-            {/* Additional drawer content... */}
+
+            {/* Scannable Data Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Event Date</span>
+                <p className="text-sm font-semibold text-slate-900">
+                  {selectedBooking?.event_date ? new Date(selectedBooking.event_date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '-'}
+                </p>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Party Size</span>
+                <p className="text-sm font-semibold text-slate-900">
+                  {selectedBooking?.guest_count} Attendees
+                </p>
+              </div>
+            </div>
+
+            {/* Chef Status Card */}
+            <div className="p-5 border border-slate-200 rounded-2xl bg-white flex items-center gap-4">
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center border ${selectedBooking?.chef_id ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-100'}`}>
+                <ChefHat className={`h-6 w-6 ${selectedBooking?.chef_id ? 'text-orange-600' : 'text-slate-300'}`} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-slate-900">
+                  {selectedBooking?.chef_id ? "Chef Reserved" : "Selection in Progress"}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  {selectedBooking?.chef_id 
+                    ? "A professional has been assigned to your booking." 
+                    : "We're matching your request with top local chefs."}
+                </p>
+              </div>
+            </div>
           </div>
-          <SheetFooter className="p-8 border-t border-slate-100">
-            <Button onClick={() => router.push(`/booking/${selectedBooking?.id}`)} className="w-full h-12 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold transition-all shadow-lg">
-              Manage Booking <ArrowUpRight className="ml-2 h-4 w-4" />
+
+          <SheetFooter className="p-8 border-t border-slate-100 bg-slate-50/50">
+            <Button 
+              onClick={() => router.push(`/booking/${selectedBooking?.id}`)} 
+              className="w-full h-12 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold transition-all shadow-lg active:scale-[0.98]"
+            >
+              Manage Booking File <ArrowUpRight className="ml-2 h-4 w-4" />
             </Button>
           </SheetFooter>
         </SheetContent>
