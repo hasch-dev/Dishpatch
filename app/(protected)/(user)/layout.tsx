@@ -8,9 +8,9 @@ export default function UserLayout({
 }) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-svh">
+      <div className="flex min-h-svh w-full">
         <AppSidebar role="user" />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 w-full">{children}</main>
       </div>
     </SidebarProvider>
   )

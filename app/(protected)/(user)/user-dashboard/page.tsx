@@ -2,8 +2,13 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
+import { 
+  Plus, Calendar, Users, ChefHat, X, Utensils,
+  CheckCircle2, Clock, Trash2, ArrowUpRight,
+  ChevronRight, Search
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -18,11 +23,8 @@ interface Booking {
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
-  const [user, setUser] = useState<any>(null)
   const [userBookings, setUserBookings] = useState<Booking[]>([])
-  const [userType, setUserType] = useState<'user' | 'chef' | null>(null)
-
-  const [showBookingTypeModal, setShowBookingTypeModal] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
 
   const router = useRouter()
   const supabase = createClient()
@@ -30,229 +32,170 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) {
-        router.push('/auth/login')
-        return
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', user.id)
-        .single()
-
-      const type = profile?.user_type || 'user'
-
-      setUser(user)
-      setUserType(type)
-
-      if (type === 'chef') {
-        router.push('/chef-dashboard')
-        return
-      }
-
+      if (!user) { router.push('/auth/login'); return }
+      
       const response = await fetch(`/api/bookings?user_id=${user.id}`)
-      if (response.ok) {
-        const { data } = await response.json()
-        setUserBookings(data || [])
-      }
-
+      if (response.ok) { const { data } = await response.json(); setUserBookings(data || []) }
       setIsLoading(false)
     }
-
     checkAuth()
-  }, [])
+  }, [router, supabase])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth/login')
+  const handleCancel = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    if (!confirm("Are you sure you want to cancel this booking?")) return
+    setUserBookings(prev => prev.filter(b => b.id !== id))
   }
 
-  if (isLoading) {
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      pending_assignment: "bg-amber-50 text-amber-700 border-amber-100",
+      confirmed: "bg-emerald-50 text-emerald-700 border-emerald-100",
+      default: "bg-slate-50 text-slate-600 border-slate-200"
+    }
+    const currentStyle = styles[status] || styles.default
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        Loading...
-      </div>
+      <Badge className={`rounded-full shadow-none font-medium text-[10px] uppercase tracking-wider px-2.5 py-0.5 border ${currentStyle}`}>
+        {status.replace('_', ' ')}
+      </Badge>
     )
   }
 
+  if (isLoading) return <div className="w-full h-screen p-8 animate-pulse bg-slate-50/50" />
+
   return (
-    <div className="min-h-svh bg-background">
-
-      {/* HEADER */}
-      <header className="border-b">
-        <div className="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Dishpatch</h1>
-            <p className="text-muted-foreground">
-              Welcome, {user?.user_metadata?.display_name}
-            </p>
+    <div className="w-full min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-orange-100">
+      
+      <nav className="w-full border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="px-6 flex items-center justify-between h-14">
+          <div className="flex items-center gap-4">
+            <h1 className="text-sm font-bold tracking-tight text-slate-900">Dashboard</h1>
+            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+            <p className="text-xs text-slate-500 hidden sm:block">Manage your culinary experiences</p>
           </div>
-
-          <div className="flex gap-2">
-            <Link href="/profile">
-              <Button variant="outline">My Profile</Button>
-            </Link>
-            <Button variant="destructive" onClick={handleLogout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* MAIN */}
-      <main className="mx-auto max-w-7xl px-4 py-8">
-
-        {/* HEADER + CTA */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold">My Bookings</h2>
-            <p className="text-muted-foreground">
-              Create a booking and we’ll assign a chef for you
-            </p>
-          </div>
-
-          <Button
-            onClick={() => setShowBookingTypeModal(true)}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
+          <Button 
+            onClick={() => {}} 
+            className="bg-orange-600 hover:bg-orange-700 text-white rounded-lg h-8 px-3 text-xs font-semibold shadow-sm transition-all"
           >
-            + Create Booking
+            <Plus className="mr-1.5 h-3.5 w-3.5" /> New Event
           </Button>
         </div>
+      </nav>
 
-        {/* BOOKINGS */}
-        {userBookings.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground mb-4">
-                You don’t have any bookings yet.
-              </p>
-              <Button onClick={() => setShowBookingTypeModal(true)}>
-                Create your first booking
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+      <main className="p-6 lg:p-10 space-y-10 max-w-[1400px] mx-auto">
+        
+        {/* STATS SECTION */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { label: 'Upcoming', val: userBookings.filter(b => b.status === 'confirmed').length, icon: CheckCircle2, color: 'text-emerald-500' },
+            { label: 'Awaiting Chef', val: userBookings.filter(b => b.status === 'pending_assignment').length, icon: Clock, color: 'text-amber-500' },
+            { label: 'Total Volume', val: userBookings.length, icon: Utensils, color: 'text-slate-400' },
+          ].map((s, i) => (
+            <div key={i} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
+                <p className="text-xl font-bold text-slate-900 mt-0.5">{s.val}</p>
+              </div>
+              <s.icon className={`h-5 w-5 ${s.color} opacity-80`} />
+            </div>
+          ))}
+        </section>
+
+        {/* BOOKINGS GRID */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tighter">Your Experiences</h3>
+            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+              <Search className="h-3.5 w-3.5" /> Filter by Status
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {userBookings.map((booking) => (
-              <Card key={booking.id}>
-                <CardContent className="pt-6">
-
-                  <h3 className="font-semibold text-lg mb-2">
-                    {booking.title}
-                  </h3>
-
-                  <div className="space-y-1 text-sm text-muted-foreground mb-3">
-                    <p>Date: {booking.event_date}</p>
-                    <p>Guests: {booking.guest_count}</p>
-                    <p>
-                      Status:{' '}
-                      <span className="font-medium capitalize">
-                        {booking.status === 'pending_assignment'
-                          ? 'Waiting for chef assignment'
-                          : booking.status}
-                      </span>
-                    </p>
+              <div 
+                key={booking.id} 
+                onClick={() => setSelectedBooking(booking)}
+                className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all cursor-pointer hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-900/5 hover:-translate-y-0.5 active:scale-[0.98]"
+              >
+                {/* Header Area */}
+                <div className="p-5 pb-0 flex justify-between items-start">
+                  <div className="space-y-3">
+                    {getStatusBadge(booking.status)}
+                    <h4 className="text-[17px] font-bold text-slate-900 leading-tight group-hover:text-orange-600 transition-colors">
+                      {booking.title}
+                    </h4>
                   </div>
+                  <div className="flex flex-col items-end gap-2">
+                     <button 
+                      onClick={(e) => handleCancel(e, booking.id)}
+                      className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
 
-                  <Link href={`/booking/${booking.id}`}>
-                    <Button className="w-full" size="sm">
-                      View Booking
-                    </Button>
-                  </Link>
+                {/* Details Bar */}
+                <div className="px-5 py-6 grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
+                      <Calendar className="h-4 w-4 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Date</p>
+                      <p className="text-[13px] font-semibold text-slate-700">{new Date(booking.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
+                      <Users className="h-4 w-4 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Group</p>
+                      <p className="text-[13px] font-semibold text-slate-700">{booking.guest_count} pax</p>
+                    </div>
+                  </div>
+                </div>
 
-                </CardContent>
-              </Card>
+                {/* Footer / Chef Info */}
+                <div className="px-5 py-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-6 w-6 rounded-full flex items-center justify-center border ${booking.chef_id ? 'bg-emerald-100 border-emerald-200' : 'bg-white border-slate-200'}`}>
+                      <ChefHat className={`h-3 w-3 ${booking.chef_id ? 'text-emerald-600' : 'text-slate-300'}`} />
+                    </div>
+                    <span className="text-[11px] font-medium text-slate-500">
+                      {booking.chef_id ? 'Chef Assigned' : 'Seeking Chef...'}
+                    </span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+                </div>
+              </div>
             ))}
           </div>
-        )}
-
+        </section>
       </main>
 
-      {/* ================= MODAL ================= */}
-      {showBookingTypeModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-
-          <div className="bg-white rounded-2xl w-[70%] min-h-[75%] p-8 flex flex-col shadow-2xl relative">
-
-            {/* CLOSE BUTTON */}
-            <button
-              onClick={() => setShowBookingTypeModal(false)}
-              className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition"
-            >
-              ✕
-            </button>
-
-            {/* HEADER */}
-            <div className="text-center space-y-2 mb-6">
-              <h2 className="text-3xl font-bold">What are you booking?</h2>
-              <p className="text-muted-foreground">
-                Choose your experience type
-              </p>
-            </div>
-
-            {/* CARDS */}
-            <div className="flex flex-1 gap-8 items-stretch">
-
-              {/* EVENT CARD */}
-              <div
-                onClick={() => router.push('/booking/new?type=event')}
-                className="flex-1 cursor-pointer border rounded-2xl overflow-hidden hover:shadow-xl hover:border-orange-500 transition-all group flex flex-col bg-white"
-              >
-
-                {/* IMAGE PLACEHOLDER (NO GRADIENT) */}
-                <div className="h-[65%] min-h-[260px] bg-gray-100 flex items-center justify-center">
-                  <div className="text-gray-500 text-5xl font-semibold">
-                    🍽
-                  </div>
-                </div>
-
-                {/* CONTENT */}
-                <div className="p-6 space-y-2 flex-1">
-                  <h3 className="text-2xl font-semibold group-hover:text-orange-500 transition">
-                    Private Event
-                  </h3>
-
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Dinner parties, celebrations, corporate gatherings, and curated private chef experiences tailored for your event.
-                  </p>
-                </div>
-
-              </div>
-
-              {/* CONSULTATION CARD */}
-              <div
-                onClick={() => router.push('/booking/new?type=consultation')}
-                className="flex-1 cursor-pointer border rounded-2xl overflow-hidden hover:shadow-xl hover:border-orange-500 transition-all group flex flex-col bg-white"
-              >
-
-                {/* IMAGE PLACEHOLDER (NO GRADIENT) */}
-                <div className="h-[65%] min-h-[260px] bg-gray-100 flex items-center justify-center">
-                  <div className="text-gray-500 text-5xl font-semibold">
-                    🧑‍🍳
-                  </div>
-                </div>
-
-                {/* CONTENT */}
-                <div className="p-6 space-y-2 flex-1">
-                  <h3 className="text-2xl font-semibold group-hover:text-orange-500 transition">
-                    Chef Consultation
-                  </h3>
-
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Get expert help planning menus, improving cooking skills, or designing a personalized food experience with a professional chef.
-                  </p>
-                </div>
-
-              </div>
-
-            </div>
-
+      {/* DRAWER REMAINS CONSISTENT */}
+      <Sheet open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+        <SheetContent className="w-full sm:max-w-md bg-white p-0 flex flex-col">
+          <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight">Booking Summary</h2>
+            <button onClick={() => setSelectedBooking(null)} className="text-slate-400 hover:text-slate-900"><X className="h-5 w-5" /></button>
           </div>
-
-        </div>
-      )}
+          <div className="flex-1 p-8 space-y-10 overflow-y-auto">
+             <div className="space-y-2">
+              {selectedBooking && getStatusBadge(selectedBooking.status)}
+              <h3 className="text-2xl font-bold text-slate-900">{selectedBooking?.title}</h3>
+            </div>
+            {/* Additional drawer content... */}
+          </div>
+          <SheetFooter className="p-8 border-t border-slate-100">
+            <Button onClick={() => router.push(`/booking/${selectedBooking?.id}`)} className="w-full h-12 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold transition-all shadow-lg">
+              Manage Booking <ArrowUpRight className="ml-2 h-4 w-4" />
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
