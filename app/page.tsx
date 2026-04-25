@@ -44,7 +44,7 @@ export default function LandingPage() {
       
       <main>
         {/* 1. HERO SECTION */}
-        <section className="relative mx-auto max-w-7xl px-6 lg:px-8 pt-20 pb-24 md:pt-28 md:pb-32">
+        <section className="relative mx-auto max-w-7xl px-6 lg:px-8 pt-20 pb-24 md:pt-12 md:pb-32">
           <div className="grid gap-16 lg:grid-cols-2 items-center">
             
             <div className="flex flex-col gap-8 text-center lg:text-left">

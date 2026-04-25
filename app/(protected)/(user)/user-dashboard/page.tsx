@@ -13,10 +13,12 @@ import {
 import { 
   Plus, Calendar, Users, ChefHat, Utensils,
   CheckCircle2, Clock, Trash2, ArrowUpRight,
-  ChevronRight, Search, MapPin
+  ChevronRight, Search, MapPin, Sparkles
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { cn } from '@/lib/utils'
+import { motion } from 'framer-motion'
 
 interface Booking {
   id: string
@@ -52,199 +54,188 @@ export default function DashboardPage() {
 
   const handleCancel = (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
-    if (!confirm("Are you sure you want to cancel this booking?")) return
+    if (!confirm("Are you sure you want to retire this booking file?")) return
     setUserBookings(prev => prev.filter(b => b.id !== id))
   }
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      pending_assignment: "bg-amber-50 text-amber-700 border-amber-100",
-      confirmed: "bg-emerald-50 text-emerald-700 border-emerald-100",
-      default: "bg-slate-50 text-slate-600 border-slate-200"
+      pending_assignment: "border-primary/20 text-primary bg-primary/5",
+      confirmed: "border-emerald-500/20 text-emerald-600 bg-emerald-500/5",
+      default: "border-secondary/20 text-secondary/60 bg-secondary/5"
     }
     const currentStyle = styles[status] || styles.default
     return (
-      <Badge className={`rounded-full shadow-none font-medium text-[10px] uppercase tracking-wider px-2.5 py-0.5 border ${currentStyle}`}>
+      <Badge variant="outline" className={cn("rounded-none font-bold text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 border italic", currentStyle)}>
         {status.replace('_', ' ')}
       </Badge>
     )
   }
 
-  if (isLoading) return <div className="w-full h-screen p-8 animate-pulse bg-slate-50/50" />
+  if (isLoading) return <div className="w-full h-screen bg-background animate-pulse flex items-center justify-center text-primary italic font-serif">Dishpatch...</div>
 
   return (
-    <div className="w-full min-h-screen bg-[#F8FAFC] text-slate-900 selection:bg-orange-100 font-sans">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       
-      {/* NAVBAR */}
-      <nav className="w-full border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="px-6 flex items-center justify-between h-14">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-bold tracking-tight text-slate-900">Dashboard</h1>
-            <div className="h-4 w-px bg-slate-200 hidden sm:block" />
-            <p className="text-xs text-slate-500 hidden sm:block">Manage your culinary experiences</p>
+      {/* ROYAL NAVY NAVBAR */}
+      <nav className="w-full border-b border-primary/10 bg-secondary sticky top-0 z-50">
+        <div className="max-w-[1600px] mx-auto px-8 flex items-center justify-between h-20">
+          <div className="flex items-center gap-6">
+            <h1 className="text-xl font-serif tracking-widest uppercase text-secondary-foreground">Dashboard</h1>
+            <div className="h-4 w-px bg-primary/20" />
+            <div className="hidden sm:flex items-center gap-2 text-[10px] text-secondary-foreground/40 uppercase tracking-[0.3em] font-bold">
+              <Sparkles className="w-3 h-3 text-primary" />
+              Member Console
+            </div>
           </div>
           <Button 
             onClick={() => {}} 
-            className="bg-orange-600 hover:bg-orange-700 text-white rounded-lg h-8 px-3 text-xs font-semibold shadow-sm transition-all"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-none h-12 px-8 text-[11px] font-bold uppercase tracking-[0.3em] shadow-xl shadow-primary/10 transition-all"
           >
-            <Plus className="mr-1.5 h-3.5 w-3.5" /> New Event
+            <Plus className="mr-2 h-4 w-4" /> New Engagement
           </Button>
         </div>
       </nav>
 
-      <main className="p-6 lg:p-10 space-y-10 max-w-[1400px] mx-auto">
+      <main className="px-8 lg:px-16 py-12 space-y-16 max-w-[1600px] mx-auto">
         
-        {/* STATS */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* STATS SECTION - MINIMALIST CARDS */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           {[
-            { label: 'Upcoming', val: userBookings.filter(b => b.status === 'confirmed').length, icon: CheckCircle2, color: 'text-emerald-500' },
-            { label: 'Awaiting Chef', val: userBookings.filter(b => b.status === 'pending_assignment').length, icon: Clock, color: 'text-amber-500' },
-            { label: 'Total Volume', val: userBookings.length, icon: Utensils, color: 'text-slate-400' },
+            { label: 'Upcoming', val: userBookings.filter(b => b.status === 'confirmed').length, icon: CheckCircle2 },
+            { label: 'Pending Selection', val: userBookings.filter(b => b.status === 'pending_assignment').length, icon: Clock },
+            { label: 'Total Dossiers', val: userBookings.length, icon: Utensils },
           ].map((s, i) => (
-            <div key={i} className="bg-white border border-slate-200 p-4 rounded-xl flex items-center justify-between">
+            <div key={i} className="group border-b border-primary/10 p-6 flex items-end justify-between hover:border-primary transition-colors">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
-                <p className="text-xl font-bold text-slate-900 mt-0.5">{s.val}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4">{s.label}</p>
+                <p className="text-5xl font-serif text-foreground">{s.val}</p>
               </div>
-              <s.icon className={`h-5 w-5 ${s.color} opacity-80`} />
+              <s.icon className="h-6 w-6 text-primary/30 group-hover:text-primary transition-colors" />
             </div>
           ))}
         </section>
 
         {/* BOOKINGS GRID */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tighter">Your Experiences</h3>
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-              <Search className="h-3.5 w-3.5" /> Filter by Status
+        <section className="space-y-10">
+          <div className="flex items-center justify-between border-b border-primary/10 pb-6">
+            <h3 className="text-3xl font-serif text-foreground tracking-tight">The <span className="italic text-primary">Portfolio</span></h3>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">
+              <Search className="h-3.5 w-3.5" /> Search Engagements
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
             {userBookings.map((booking) => (
-              <div 
+              <motion.div 
                 key={booking.id} 
+                whileHover={{ y: -5 }}
                 onClick={() => setSelectedBooking(booking)}
-                className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden transition-all cursor-pointer hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-900/5 hover:-translate-y-0.5 active:scale-[0.98]"
+                className="group cursor-pointer space-y-6"
               >
-                <div className="p-5 pb-0 flex justify-between items-start">
-                  <div className="space-y-3">
+                {/* Image Placeholder / Visual Block */}
+                <div className="relative aspect-[4/3] bg-secondary overflow-hidden border border-primary/5">
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-linen.png')] opacity-20" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-secondary/80 backdrop-blur-sm">
+                    <span className="text-[10px] uppercase tracking-[0.4em] text-primary font-bold">Open File</span>
+                  </div>
+                  <div className="absolute top-4 left-4">
                     {getStatusBadge(booking.status)}
-                    <h4 className="text-[17px] font-bold text-slate-900 leading-tight group-hover:text-orange-600 transition-colors">
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <h4 className="text-xl font-serif text-foreground leading-tight group-hover:text-primary transition-colors italic">
                       {booking.title}
                     </h4>
+                    <button 
+                      onClick={(e) => handleCancel(e, booking.id)}
+                      className="p-1 text-muted-foreground/30 hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button 
-                    onClick={(e) => handleCancel(e, booking.id)}
-                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
 
-                <div className="px-5 py-6 grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
-                      <Calendar className="h-4 w-4 text-slate-400" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Date</p>
-                      <p className="text-[13px] font-semibold text-slate-700">
+                  <div className="flex items-center gap-8 border-t border-primary/10 pt-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3 w-3 text-primary" />
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
                         {new Date(booking.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </p>
+                      </span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
-                      <Users className="h-4 w-4 text-slate-400" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Group</p>
-                      <p className="text-[13px] font-semibold text-slate-700">{booking.guest_count} pax</p>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3 w-3 text-primary" />
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                        {booking.guest_count} Attendees
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                <div className="px-5 py-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-6 w-6 rounded-full flex items-center justify-center border ${booking.chef_id ? 'bg-emerald-100 border-emerald-200' : 'bg-white border-slate-200'}`}>
-                      <ChefHat className={`h-3 w-3 ${booking.chef_id ? 'text-emerald-600' : 'text-slate-300'}`} />
-                    </div>
-                    <span className="text-[11px] font-medium text-slate-500">
-                      {booking.chef_id ? 'Chef Assigned' : 'Seeking Chef...'}
-                    </span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
-                </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </section>
       </main>
 
-      {/* DRAWER / SIDE SUMMARY */}
+      {/* DRAWER: THE DOSSIER SUMMARY */}
       <Sheet open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
-        <SheetContent className="w-full sm:max-w-md bg-white p-0 flex flex-col border-l border-slate-200">
+        <SheetContent className="w-full sm:max-w-lg bg-secondary p-0 flex flex-col border-l border-primary/10 text-secondary-foreground">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-linen.png')] opacity-10 pointer-events-none" />
           
-          <SheetHeader className="p-8 border-b border-slate-100">
-            <SheetTitle className="text-xl font-bold tracking-tight text-slate-900">
-              Booking Summary
+          <SheetHeader className="p-12 border-b border-primary/10 relative z-10">
+            <SheetTitle className="text-3xl font-serif tracking-tight text-secondary-foreground italic">
+              Engagement <span className="text-primary underline underline-offset-8 decoration-1 font-sans not-italic">File</span>
             </SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 p-8 space-y-8 overflow-y-auto">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                {selectedBooking && getStatusBadge(selectedBooking.status)}
-                <p className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> Private Event
-                </p>
-              </div>
-              <h3 className="text-2xl font-bold text-slate-900 leading-tight">
+          <div className="flex-1 p-12 space-y-12 overflow-y-auto relative z-10">
+            <div className="space-y-6">
+              {selectedBooking && getStatusBadge(selectedBooking.status)}
+              <h3 className="text-4xl font-serif text-secondary-foreground leading-[1.1]">
                 {selectedBooking?.title}
               </h3>
+              <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] font-bold text-primary italic">
+                <MapPin className="h-3 w-3" /> Private Estate Location
+              </p>
             </div>
 
-            {/* Scannable Data Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Event Date</span>
-                <p className="text-sm font-semibold text-slate-900">
-                  {selectedBooking?.event_date ? new Date(selectedBooking.event_date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '-'}
+            <div className="grid grid-cols-1 gap-6">
+              <div className="p-8 border border-primary/10 bg-background/5 space-y-2">
+                <span className="text-[9px] font-bold text-primary uppercase tracking-[0.4em] block">Scheduled Date</span>
+                <p className="text-xl font-serif">
+                  {selectedBooking?.event_date ? new Date(selectedBooking.event_date).toLocaleDateString(undefined, { dateStyle: 'full' }) : '-'}
                 </p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Party Size</span>
-                <p className="text-sm font-semibold text-slate-900">
-                  {selectedBooking?.guest_count} Attendees
-                </p>
-              </div>
-            </div>
-
-            {/* Chef Status Card */}
-            <div className="p-5 border border-slate-200 rounded-2xl bg-white flex items-center gap-4">
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center border ${selectedBooking?.chef_id ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-100'}`}>
-                <ChefHat className={`h-6 w-6 ${selectedBooking?.chef_id ? 'text-orange-600' : 'text-slate-300'}`} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-slate-900">
-                  {selectedBooking?.chef_id ? "Chef Reserved" : "Selection in Progress"}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                  {selectedBooking?.chef_id 
-                    ? "A professional has been assigned to your booking." 
-                    : "We're matching your request with top local chefs."}
-                </p>
+              
+              <div className="p-8 border border-primary/10 bg-background/5 space-y-2">
+                <span className="text-[9px] font-bold text-primary uppercase tracking-[0.4em] block">Chef Designation</span>
+                <div className="flex items-center gap-4 pt-2">
+                  <div className={cn(
+                    "h-12 w-12 rounded-none border flex items-center justify-center",
+                    selectedBooking?.chef_id ? "border-primary/40 bg-primary/5 shadow-[0_0_15px_rgba(var(--primary),0.1)]" : "border-primary/10"
+                  )}>
+                    <ChefHat className={cn("h-6 w-6", selectedBooking?.chef_id ? "text-primary" : "text-primary/20")} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-widest italic">
+                      {selectedBooking?.chef_id ? "Artisan Assigned" : "Selection Pending"}
+                    </p>
+                    <p className="text-[10px] text-secondary-foreground/40 mt-1 uppercase tracking-tighter">
+                      Curating top-tier culinary talent for your approval.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <SheetFooter className="p-8 border-t border-slate-100 bg-slate-50/50">
+          <SheetFooter className="p-12 border-t border-primary/10 bg-background/5 relative z-10">
             <Button 
               onClick={() => router.push(`/booking/${selectedBooking?.id}`)} 
-              className="w-full h-12 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold transition-all shadow-lg active:scale-[0.98]"
+              className="w-full h-16 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-[0.4em] text-[11px] shadow-2xl"
             >
-              Manage Booking File <ArrowUpRight className="ml-2 h-4 w-4" />
+              Full Portfolio View <ArrowUpRight className="ml-2 h-4 w-4" />
             </Button>
           </SheetFooter>
         </SheetContent>
