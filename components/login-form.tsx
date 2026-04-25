@@ -3,13 +3,6 @@
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
@@ -33,98 +26,121 @@ export function LoginForm({
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (authError) throw authError;
 
-      if (userError || !user) {
-        throw new Error("Failed to get user")
-      }
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error("Invalid login credentials");
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("user_type")
         .eq("id", user.id)
-        .single()
+        .single();
 
-      if (profileError || !profile) {
-        throw new Error("Failed to get profile")
-      }
+      if (profileError || !profile) throw new Error("Profile not found");
 
-      router.push(
-        profile.user_type === "chef"
-          ? "/chef-dashboard"
-          : "/user-dashboard"
-      )
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      router.push(profile.user_type === "chef" ? "/chef-dashboard" : "/user-dashboard");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An error occurred during login");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    href="/auth/forgot-password"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
-              </Button>
-            </div>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/auth/sign-up"
-                className="underline underline-offset-4"
+    <div className={cn("w-full animate-in fade-in slide-in-from-bottom-4 duration-700", className)} {...props}>
+      <div className="space-y-12">
+        {/* Simple Header */}
+        <div className="space-y-3">
+          <h2 className="text-5xl font-serif text-foreground tracking-tight">
+            Log <span className="italic text-primary">In</span>
+          </h2>
+          <p className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground font-bold">
+            Enter your details below
+          </p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-12">
+          <div className="space-y-10">
+            {/* Email Field */}
+            <div className="grid gap-3">
+              <Label 
+                htmlFor="email" 
+                className="text-[10px] uppercase tracking-[0.2em] font-bold text-foreground/70"
               >
-                Sign up
-              </Link>
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-14 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-lg placeholder:text-muted-foreground/20 px-0"
+              />
             </div>
-          </form>
-        </CardContent>
-      </Card>
+
+            {/* Password Field */}
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between">
+                <Label 
+                  htmlFor="password" 
+                  className="text-[10px] uppercase tracking-[0.2em] font-bold text-foreground/70"
+                >
+                  Password
+                </Label>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-[10px] uppercase tracking-widest text-primary font-bold hover:opacity-70"
+                >
+                  Forgot?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-14 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-lg px-0"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <p className="text-xs text-destructive font-medium text-center">
+              {error}
+            </p>
+          )}
+
+          <div className="pt-4 space-y-8">
+            <Button 
+              type="submit" 
+              className="w-full h-16 rounded-none bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-[11px] uppercase tracking-[0.4em] transition-all shadow-xl shadow-primary/20"
+              disabled={isLoading}
+            >
+              {isLoading ? "Logging in..." : "Login to Account"}
+            </Button>
+
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground font-light">
+                Don't have an account?{" "}
+                <Link
+                  href="/auth/sign-up"
+                  className="text-primary font-bold uppercase tracking-widest text-[10px] ml-2 hover:underline underline-offset-4"
+                >
+                  Sign Up
+                </Link>
+              </p>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
