@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 export function LoginForm({
   className,
@@ -15,6 +16,7 @@ export function LoginForm({
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -60,12 +62,13 @@ export function LoginForm({
             Log <span className="italic text-primary">In</span>
           </h2>
           <p className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground font-bold">
-            Enter your details below
+            Enter your credentials
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-12">
           <div className="space-y-10">
+            
             {/* Email Field */}
             <div className="grid gap-3">
               <Label 
@@ -81,7 +84,8 @@ export function LoginForm({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-14 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-lg placeholder:text-muted-foreground/20 px-0"
+                /* Added px-4 for left/right spacing */
+                className="h-14 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-lg placeholder:text-muted-foreground/20 px-4"
               />
             </div>
 
@@ -96,47 +100,64 @@ export function LoginForm({
                 </Label>
                 <Link
                   href="/auth/forgot-password"
-                  className="text-[10px] uppercase tracking-widest text-primary font-bold hover:opacity-70"
+                  className="text-[10px] uppercase tracking-widest text-primary font-bold hover:opacity-70 transition-opacity"
                 >
                   Forgot?
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-14 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-lg px-0"
-              />
+              
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  /* Added px-4 for breathing room and pr-12 to avoid icon overlap */
+                  className="h-14 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all text-lg px-4 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-primary transition-colors focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 stroke-[1.5px]" />
+                  ) : (
+                    <Eye className="h-5 w-5 stroke-[1.5px]" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
           {error && (
-            <p className="text-xs text-destructive font-medium text-center">
-              {error}
+            <p className="text-[10px] uppercase tracking-widest text-destructive font-bold text-center italic">
+              Error: {error}
             </p>
           )}
 
-          <div className="pt-4 space-y-8">
+          <div className="pt-4 space-y-10">
             <Button 
               type="submit" 
-              className="w-full h-16 rounded-none bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-[11px] uppercase tracking-[0.4em] transition-all shadow-xl shadow-primary/20"
+              className="w-full h-16 rounded-none bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-[11px] uppercase tracking-[0.4em] transition-all shadow-xl shadow-primary/10"
               disabled={isLoading}
             >
-              {isLoading ? "Logging in..." : "Login to Account"}
+              {isLoading ? "Authenticating..." : "Access Dashboard"}
             </Button>
 
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground font-light">
-                Don't have an account?{" "}
+            <div className="flex items-center justify-center gap-4">
+              <div className="h-px w-8 bg-primary/10" />
+              <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-bold">
+                New to the estate?{" "}
                 <Link
                   href="/auth/sign-up"
-                  className="text-primary font-bold uppercase tracking-widest text-[10px] ml-2 hover:underline underline-offset-4"
+                  className="text-primary font-bold ml-2 hover:underline underline-offset-8 transition-all"
                 >
-                  Sign Up
+                  Apply Here
                 </Link>
               </p>
+              <div className="h-px w-8 bg-primary/10" />
             </div>
           </div>
         </form>

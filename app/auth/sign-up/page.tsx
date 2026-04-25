@@ -80,7 +80,6 @@ export default function SignUpPage() {
         transition={{ duration: 1 }}
         className="hidden lg:flex flex-col justify-between w-[38%] h-screen sticky top-0 bg-secondary p-16 overflow-hidden border-r border-primary/10"
       >
-        {/* Subtle Texture */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-linen.png')] opacity-10 mix-blend-overlay" />
         
         <div className="relative z-10">
@@ -108,17 +107,13 @@ export default function SignUpPage() {
         <div className="relative z-10">
           <p className="text-[9px] uppercase tracking-[0.4em] text-secondary-foreground/30 font-medium">Dishpatch © 2026</p>
         </div>
-
-        {/* Subtle Decorative Glow */}
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-primary/5 rounded-full blur-[80px]" />
       </motion.div>
 
       {/* RIGHT SIDE: SCROLLABLE FORM SECTION */}
       <div className="flex-1 flex flex-col items-center bg-background px-8 lg:px-20 py-20 relative">
         
-        {/* Floating Back Button */}
         <div className="absolute top-10 right-10 z-20">
-          <Button asChild variant="ghost" className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground hover:text-secondary transition-all">
+          <Button asChild variant="ghost" className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground hover:text-primary transition-all">
             <Link href="/" className="flex items-center gap-2">
               <ChevronLeft className="w-4 h-4" /> Back to Home
             </Link>
@@ -184,7 +179,8 @@ export default function SignUpPage() {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="e.g., Julian Thorne"
-                  className="h-12 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all px-0 placeholder:text-muted-foreground/20"
+                  /* Added px-4 */
+                  className="h-12 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all px-4 placeholder:text-muted-foreground/20 text-lg"
                 />
               </div>
 
@@ -195,7 +191,8 @@ export default function SignUpPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@domain.com"
-                  className="h-12 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all px-0 placeholder:text-muted-foreground/20"
+                  /* Added px-4 */
+                  className="h-12 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all px-4 placeholder:text-muted-foreground/20 text-lg"
                 />
               </div>
 
@@ -206,14 +203,15 @@ export default function SignUpPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all px-0 pr-10"
+                    /* Added px-4 and pr-12 for icon safety */
+                    className="h-12 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all px-4 pr-12 text-lg"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-0 bottom-3 text-muted-foreground hover:text-primary transition-colors"
+                    className="absolute right-2 bottom-3 text-muted-foreground/40 hover:text-primary transition-colors focus:outline-none"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
                   </button>
                 </div>
                 <PasswordStrengthIndicator strength={passwordStrength} />
@@ -225,7 +223,8 @@ export default function SignUpPage() {
                   type="password"
                   value={repeatPassword}
                   onChange={(e) => setRepeatPassword(e.target.value)}
-                  className="h-12 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all px-0"
+                  /* Added px-4 */
+                  className="h-12 bg-transparent border-t-0 border-x-0 border-b border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary transition-all px-4 text-lg"
                 />
               </div>
             </div>
@@ -251,7 +250,7 @@ export default function SignUpPage() {
                 <div className="h-px w-8 bg-muted-foreground/20" />
                 <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                   Already registered?{' '}
-                  <Link href="/auth/login" className="text-primary font-bold hover:underline ml-1 transition-all">
+                  <Link href="/auth/login" className="text-primary font-bold hover:underline underline-offset-8 ml-1 transition-all">
                     Login
                   </Link>
                 </p>

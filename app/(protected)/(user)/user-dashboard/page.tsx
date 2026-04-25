@@ -3,241 +3,262 @@
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetFooter 
-} from "@/components/ui/sheet"
-import { 
-  Plus, Calendar, Users, ChefHat, Utensils,
-  CheckCircle2, Clock, Trash2, ArrowUpRight,
-  ChevronRight, Search, MapPin, Sparkles
+  Plus, Calendar, Users, ChefHat, 
+  Search, DollarSign, X, Trash2, Hash, ArrowRight, MapPin
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { motion } from 'framer-motion'
-
-interface Booking {
-  id: string
-  title: string
-  event_date: string
-  guest_count: number
-  status: string
-  chef_id: string | null
-}
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
-  const [userBookings, setUserBookings] = useState<Booking[]>([])
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [userBookings, setUserBookings] = useState<any[]>([])
+  const [selectedBooking, setSelectedBooking] = useState<any | null>(null)
+  const [userName, setUserName] = useState("Member")
 
   const router = useRouter()
   const supabase = createClient()
 
+  const handleCreateNew = () => {
+    router.push('/booking/new')
+  }
+
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/auth/login'); return }
-      
-      const response = await fetch(`/api/bookings?user_id=${user.id}`)
-      if (response.ok) { 
-        const { data } = await response.json()
-        setUserBookings(data || []) 
+    const loadDashboard = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { router.push('/auth/login'); return }
+
+        const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', user.id).single()
+        if (profile?.display_name) setUserName(profile.display_name)
+        
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+
+        if (!error) {
+          setUserBookings(data || []) 
+        }
+      } catch (error) {
+        console.error("Dashboard error:", error)
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
-    checkAuth()
+    loadDashboard()
   }, [router, supabase])
 
-  const handleCancel = (e: React.MouseEvent, id: string) => {
+  const handleCancel = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
-    if (!confirm("Are you sure you want to retire this booking file?")) return
-    setUserBookings(prev => prev.filter(b => b.id !== id))
-  }
-
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      pending_assignment: "border-primary/20 text-primary bg-primary/5",
-      confirmed: "border-emerald-500/20 text-emerald-600 bg-emerald-500/5",
-      default: "border-secondary/20 text-secondary/60 bg-secondary/5"
+    if (!window.confirm("Retire this engagement?")) return
+    
+    const { error } = await supabase.from('bookings').delete().eq('id', id)
+    if (!error) {
+        setUserBookings(prev => prev.filter(b => b.id !== id))
+        if (selectedBooking?.id === id) setSelectedBooking(null)
     }
-    const currentStyle = styles[status] || styles.default
-    return (
-      <Badge variant="outline" className={cn("rounded-none font-bold text-[9px] uppercase tracking-[0.2em] px-2 py-0.5 border italic", currentStyle)}>
-        {status.replace('_', ' ')}
-      </Badge>
-    )
   }
 
-  if (isLoading) return <div className="w-full h-screen bg-background animate-pulse flex items-center justify-center text-primary italic font-serif">Dishpatch...</div>
+  const filteredBookings = userBookings.filter(b => 
+    b.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (isLoading) return (
+    <div className="h-screen w-full flex items-center justify-center bg-background italic font-serif text-muted-foreground font-medium tracking-widest transition-colors duration-500">
+        Initialising Studio...
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
+    <div className="min-h-screen bg-background text-foreground selection:bg-accent transition-colors duration-500">
       
-      {/* ROYAL NAVY NAVBAR */}
-      <nav className="w-full border-b border-primary/10 bg-secondary sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto px-8 flex items-center justify-between h-20">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-serif tracking-widest uppercase text-secondary-foreground">Dashboard</h1>
-            <div className="h-4 w-px bg-primary/20" />
-            <div className="hidden sm:flex items-center gap-2 text-[10px] text-secondary-foreground/40 uppercase tracking-[0.3em] font-bold">
-              <Sparkles className="w-3 h-3 text-primary" />
-              Member Console
-            </div>
+      {/* STUDIO NAV */}
+      <nav className="h-14 border-b border-border bg-card sticky top-0 z-40 px-6 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary text-primary-foreground p-1">
+             <ChefHat className="h-4 w-4" />
           </div>
-          <Button 
-            onClick={() => {}} 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-none h-12 px-8 text-[11px] font-bold uppercase tracking-[0.3em] shadow-xl shadow-primary/10 transition-all"
-          >
-            <Plus className="mr-2 h-4 w-4" /> New Engagement
-          </Button>
+          <h1 className="font-serif text-sm tracking-widest uppercase font-bold">
+            Dishpatch <span className="text-muted-foreground font-light ml-2">Studio</span>
+          </h1>
         </div>
+        <Button 
+          onClick={handleCreateNew} 
+          className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-none h-8 px-5 text-[9px] font-bold uppercase tracking-widest transition-all"
+        >
+          <Plus className="mr-2 h-3 w-3" /> New File
+        </Button>
       </nav>
 
-      <main className="px-8 lg:px-16 py-12 space-y-16 max-w-[1600px] mx-auto">
+      <main className="max-w-[1300px] mx-auto px-8 pt-12 pb-20">
         
-        {/* STATS SECTION - MINIMALIST CARDS */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-          {[
-            { label: 'Upcoming', val: userBookings.filter(b => b.status === 'confirmed').length, icon: CheckCircle2 },
-            { label: 'Pending Selection', val: userBookings.filter(b => b.status === 'pending_assignment').length, icon: Clock },
-            { label: 'Total Dossiers', val: userBookings.length, icon: Utensils },
-          ].map((s, i) => (
-            <div key={i} className="group border-b border-primary/10 p-6 flex items-end justify-between hover:border-primary transition-colors">
-              <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mb-4">{s.label}</p>
-                <p className="text-5xl font-serif text-foreground">{s.val}</p>
-              </div>
-              <s.icon className="h-6 w-6 text-primary/30 group-hover:text-primary transition-colors" />
-            </div>
-          ))}
-        </section>
-
-        {/* BOOKINGS GRID */}
-        <section className="space-y-10">
-          <div className="flex items-center justify-between border-b border-primary/10 pb-6">
-            <h3 className="text-3xl font-serif text-foreground tracking-tight">The <span className="italic text-primary">Portfolio</span></h3>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">
-              <Search className="h-3.5 w-3.5" /> Search Engagements
-            </div>
+        {/* HEADER & SEARCH */}
+        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-1">
+            <h2 className="text-3xl font-serif text-foreground leading-tight tracking-tight">Welcome, {userName}.</h2>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+               <Hash className="h-3 w-3 text-primary" /> Active Dossiers: {filteredBookings.length}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
-            {userBookings.map((booking) => (
-              <motion.div 
-                key={booking.id} 
-                whileHover={{ y: -5 }}
-                onClick={() => setSelectedBooking(booking)}
-                className="group cursor-pointer space-y-6"
-              >
-                {/* Image Placeholder / Visual Block */}
-                <div className="relative aspect-[4/3] bg-secondary overflow-hidden border border-primary/5">
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-linen.png')] opacity-20" />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-secondary/80 backdrop-blur-sm">
-                    <span className="text-[10px] uppercase tracking-[0.4em] text-primary font-bold">Open File</span>
-                  </div>
-                  <div className="absolute top-4 left-4">
-                    {getStatusBadge(booking.status)}
-                  </div>
-                </div>
+          <div className="relative group">
+            <Input 
+              placeholder="Search database..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-64 h-10 bg-card border-border rounded-none shadow-sm focus-visible:ring-1 focus-visible:ring-primary italic text-xs transition-all pl-10"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          </div>
+        </header>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-start">
-                    <h4 className="text-xl font-serif text-foreground leading-tight group-hover:text-primary transition-colors italic">
-                      {booking.title}
-                    </h4>
+        {/* BOOKING GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <AnimatePresence mode='popLayout'>
+            {filteredBookings.map((booking) => (
+              <motion.div 
+                key={booking.id}
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedBooking(booking)}
+                className="group relative bg-card border border-border rounded-sm hover:border-primary transition-all cursor-pointer flex flex-col h-64 shadow-sm overflow-hidden"
+              >
+                <div className={cn(
+                  "h-1 w-full",
+                  booking.status === 'confirmed' ? "bg-emerald-500" : "bg-amber-400"
+                )} />
+
+                <div className="p-5 flex flex-col h-full">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="text-[8px] font-mono text-muted-foreground uppercase tracking-tighter">REF: {booking.id.slice(0, 8)}</span>
                     <button 
                       onClick={(e) => handleCancel(e, booking.id)}
-                      className="p-1 text-muted-foreground/30 hover:text-destructive transition-colors"
+                      className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-8 border-t border-primary/10 pt-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3 text-primary" />
-                      <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-                        {new Date(booking.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </span>
+                  <h3 className="text-lg font-serif font-medium text-foreground leading-snug line-clamp-2 mb-6 group-hover:italic transition-all">
+                    {booking.title || "Untitled Engagement"}
+                  </h3>
+
+                  <div className="space-y-2 mb-auto">
+                    <div className="flex justify-between text-[9px] border-b border-border pb-1">
+                      <span className="text-muted-foreground uppercase font-bold tracking-tighter">Engagement</span>
+                      <span className="font-medium text-foreground italic uppercase tracking-widest text-[8px]">{booking.booking_type}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-3 w-3 text-primary" />
-                      <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-                        {booking.guest_count} Attendees
-                      </span>
+                    <div className="flex justify-between text-[9px] border-b border-border pb-1">
+                      <span className="text-muted-foreground uppercase font-bold tracking-tighter">Attendance</span>
+                      <span className="font-medium text-foreground italic">{booking.guest_count || '1'} PAX</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-foreground">
+                      <DollarSign className="h-3 w-3 text-emerald-600" />
+                      <span>{booking.budget ? `$${Number(booking.budget).toLocaleString()}` : 'Quote Pending'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[8px] text-muted-foreground font-bold uppercase tracking-widest">
+                       <Calendar className="h-2.5 w-2.5" />
+                       {booking.event_date || 'TBD'}
                     </div>
                   </div>
                 </div>
               </motion.div>
             ))}
+          </AnimatePresence>
+
+          <div 
+            onClick={handleCreateNew}
+            className="border-2 border-dashed border-border flex flex-col items-center justify-center p-6 space-y-3 cursor-pointer hover:bg-card hover:border-primary transition-all h-64 group"
+          >
+            <div className="h-10 w-10 bg-muted flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+              <Plus className="h-5 w-5" />
+            </div>
+            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground">Commission File</p>
           </div>
-        </section>
+        </div>
       </main>
 
-      {/* DRAWER: THE DOSSIER SUMMARY */}
+      {/* ENGAGEMENT DOSSIER (SIDE DRAWER) */}
       <Sheet open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
-        <SheetContent className="w-full sm:max-w-lg bg-secondary p-0 flex flex-col border-l border-primary/10 text-secondary-foreground">
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-linen.png')] opacity-10 pointer-events-none" />
-          
-          <SheetHeader className="p-12 border-b border-primary/10 relative z-10">
-            <SheetTitle className="text-3xl font-serif tracking-tight text-secondary-foreground italic">
-              Engagement <span className="text-primary underline underline-offset-8 decoration-1 font-sans not-italic">File</span>
-            </SheetTitle>
-          </SheetHeader>
-
-          <div className="flex-1 p-12 space-y-12 overflow-y-auto relative z-10">
-            <div className="space-y-6">
-              {selectedBooking && getStatusBadge(selectedBooking.status)}
-              <h3 className="text-4xl font-serif text-secondary-foreground leading-[1.1]">
-                {selectedBooking?.title}
-              </h3>
-              <p className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] font-bold text-primary italic">
-                <MapPin className="h-3 w-3" /> Private Estate Location
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6">
-              <div className="p-8 border border-primary/10 bg-background/5 space-y-2">
-                <span className="text-[9px] font-bold text-primary uppercase tracking-[0.4em] block">Scheduled Date</span>
-                <p className="text-xl font-serif">
-                  {selectedBooking?.event_date ? new Date(selectedBooking.event_date).toLocaleDateString(undefined, { dateStyle: 'full' }) : '-'}
-                </p>
+        <SheetContent className="w-full sm:max-w-md bg-card border-l border-border p-0 flex flex-col shadow-2xl">
+          {selectedBooking && (
+            <>
+              <div className="p-10 bg-primary text-primary-foreground">
+                <div className="flex items-center justify-between mb-6">
+                  <Badge className="bg-emerald-500 hover:bg-emerald-500 rounded-none text-[8px] uppercase tracking-widest text-white">
+                    {selectedBooking.status?.replace('_', ' ') || 'Pending Review'}
+                  </Badge>
+                  <button onClick={(e) => handleCancel(e, selectedBooking.id)} className="text-primary-foreground/60 hover:text-primary-foreground">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <h2 className="text-3xl font-serif italic leading-tight">{selectedBooking.title}</h2>
+                <p className="text-[10px] uppercase tracking-[0.3em] mt-4 opacity-50 font-bold">Client Archive</p>
               </div>
-              
-              <div className="p-8 border border-primary/10 bg-background/5 space-y-2">
-                <span className="text-[9px] font-bold text-primary uppercase tracking-[0.4em] block">Chef Designation</span>
-                <div className="flex items-center gap-4 pt-2">
-                  <div className={cn(
-                    "h-12 w-12 rounded-none border flex items-center justify-center",
-                    selectedBooking?.chef_id ? "border-primary/40 bg-primary/5 shadow-[0_0_15px_rgba(var(--primary),0.1)]" : "border-primary/10"
-                  )}>
-                    <ChefHat className={cn("h-6 w-6", selectedBooking?.chef_id ? "text-primary" : "text-primary/20")} />
+
+              <div className="flex-1 p-10 space-y-8 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-y-8 gap-x-10">
+                  {[
+                    ['Member', userName], 
+                    ['Engagement', selectedBooking.booking_type], 
+                    ['Attendance', `${selectedBooking.guest_count || 1} Pax`], 
+                    ['Date', selectedBooking.event_date || 'TBD'],
+                    ['Location', selectedBooking.location_address || 'TBD'],
+                    ['Budget', selectedBooking.budget ? `$${selectedBooking.budget}` : 'Pending']
+                  ].map(([label, val]) => (
+                    <div key={label} className="space-y-1">
+                      <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-widest">{label}</p>
+                      <p className="text-sm font-serif italic text-foreground">{val || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+                
+                {selectedBooking.dietary_restrictions && (
+                  <div className="space-y-2">
+                    <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-widest">Dietary Restrictions</p>
+                    <p className="text-xs font-serif italic text-muted-foreground">{selectedBooking.dietary_restrictions}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold uppercase tracking-widest italic">
-                      {selectedBooking?.chef_id ? "Artisan Assigned" : "Selection Pending"}
-                    </p>
-                    <p className="text-[10px] text-secondary-foreground/40 mt-1 uppercase tracking-tighter">
-                      Curating top-tier culinary talent for your approval.
-                    </p>
-                  </div>
+                )}
+
+                <div className="p-6 border-l-2 border-primary bg-muted/50 space-y-2">
+                   <p className="text-[10px] font-bold uppercase tracking-widest text-foreground">Studio Directive</p>
+                   <p className="text-xs italic text-muted-foreground leading-relaxed font-serif">
+                     {selectedBooking.chef_id 
+                        ? 'An artisan has been formally assigned to this file. Communications are now active.' 
+                        : 'Your dossier is currently being reviewed by the Studio curators for artisan matching.'}
+                   </p>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <SheetFooter className="p-12 border-t border-primary/10 bg-background/5 relative z-10">
-            <Button 
-              onClick={() => router.push(`/booking/${selectedBooking?.id}`)} 
-              className="w-full h-16 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-[0.4em] text-[11px] shadow-2xl"
-            >
-              Full Portfolio View <ArrowUpRight className="ml-2 h-4 w-4" />
-            </Button>
-          </SheetFooter>
+              <div className="p-10 border-t border-border flex flex-col gap-3">
+                <Button 
+                    onClick={() => router.push('/user-messages')} 
+                    className="w-full h-12 rounded-none bg-primary text-primary-foreground font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-primary/90 transition-all"
+                >
+                  Go to Engagement Hub
+                </Button>
+                <Button 
+                    variant="outline" 
+                    onClick={() => setSelectedBooking(null)} 
+                    className="w-full rounded-none border-border text-muted-foreground text-[9px] font-bold uppercase tracking-widest h-10 transition-all hover:bg-accent"
+                >
+                  Close Archive
+                </Button>
+              </div>
+            </>
+          )}
         </SheetContent>
       </Sheet>
     </div>

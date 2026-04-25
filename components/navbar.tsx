@@ -94,7 +94,7 @@ export default function Navbar() {
                 <Button variant="outline" className="w-full h-12 rounded-xl">Sign In</Button>
               </Link>
               <Link href="/auth/sign-up" className="w-full">
-                <Button className="w-full h-12 rounded-xl">Join the Table</Button>
+                <Button className="w-full h-12 rounded-xl text-primary">Join the Table</Button>
               </Link>
             </div>
           </div>
