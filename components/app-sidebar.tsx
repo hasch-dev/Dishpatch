@@ -25,6 +25,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch" // Ensure you have this shadcn component
 import { cn } from "@/lib/utils"
 
 export function AppSidebar() {
@@ -73,15 +74,15 @@ export function AppSidebar() {
   const items = role === "chef" ? [
     { label: "Dashboard", href: "/chef-dashboard", icon: LayoutDashboard },
     { label: "Requests", href: "/requests", icon: ClipboardList },
-    { label: "Messages", href: "/chef/messages", icon: MessageSquare }, // Fixed Chef path
+    { label: "Messages", href: "/messages", icon: MessageSquare },
     { label: "Calendar", href: "/calendar", icon: Calendar },
     { label: "Partners", href: "/partners", icon: Users },
     { label: "Gastronomic Menu", href: "/menu", icon: Utensils },
   ] : [
     { label: "Dashboard", href: "/user-dashboard", icon: LayoutDashboard },
-    { label: "Messages", href: "/user/messages", icon: MessageSquare }, // Fixed User path
+    { label: "Messages", href: "/messages", icon: MessageSquare },
     { label: "Calendar", href: "/calendar", icon: Calendar },
-    { label: "Payments & Billing", href: "/payments", icon: CreditCard }, // Updated label
+    { label: "Payments & Billing", href: "/payments", icon: CreditCard },
   ]
 
   if (isLoading || !mounted) return <div className="w-[var(--sidebar-width-icon)] h-full bg-sidebar border-r border-border" />
@@ -107,21 +108,21 @@ export function AppSidebar() {
       )}
 
       <Sidebar collapsible="icon" className="border-r border-border bg-sidebar shadow-xl overflow-hidden">
-        {/* Header - Brand Colors */}
-        <SidebarHeader className="h-20 flex justify-center bg-sidebar border-b border-border shrink-0 p-0">
+        {/* Header */}
+        <SidebarHeader className="h-20 flex flex-col justify-center bg-sidebar border-b border-border shrink-0 p-0">
           <div className={cn(
-            "flex w-full items-center transition-all duration-300",
-            isCollapsed ? "justify-center" : "px-6 justify-start"
+            "flex w-full items-center transition-all duration-300 px-4",
+            isCollapsed ? "justify-center px-0" : "justify-start"
           )}>
             <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary text-primary-foreground border border-border">
               <ChefHat className="h-6 w-6" />
             </div>
             {!isCollapsed && (
               <div className="ml-4 flex flex-col items-start overflow-hidden whitespace-nowrap animate-in fade-in duration-300">
-                <span className="font-serif text-[16px] tracking-widest uppercase text-foreground">
+                <span className="font-serif text-[16px] tracking-widest uppercase text-foreground leading-tight">
                     Dish<span className="italic text-primary">patch</span>
                 </span>
-                <span className="text-[7px] uppercase tracking-[0.5em] text-muted-foreground font-bold mt-1">
+                <span className="text-[7px] uppercase tracking-[0.5em] text-muted-foreground font-bold">
                   Private Dining
                 </span>
               </div>
@@ -129,10 +130,9 @@ export function AppSidebar() {
           </div>
         </SidebarHeader>
 
-        <SidebarContent className="bg-sidebar">
-          {/* User Profile Info */}
+        <SidebarContent className="bg-sidebar custom-scrollbar">
           {!isCollapsed && (
-            <div className="px-6 pt-6 pb-2 whitespace-nowrap overflow-hidden">
+            <div className="px-6 pt-8 pb-4 whitespace-nowrap overflow-hidden">
               <p className="text-[8px] uppercase tracking-[0.3em] text-primary font-bold mb-1">
                 {role === 'chef' ? 'Artisan' : 'Client'}
               </p>
@@ -145,42 +145,49 @@ export function AppSidebar() {
           <SidebarGroup className={cn("pt-2", isCollapsed ? "px-0" : "px-3")}>
             <SidebarMenu className="gap-2">
               
-              {/* Profile & Theme Control Section */}
-              <div className={cn("flex gap-2", isCollapsed ? "flex-col" : "flex-row")}>
-                <SidebarMenuItem className="flex-1">
+              {/* Profile & Theme Control */}
+              <div className={cn("flex items-center gap-2", isCollapsed ? "flex-col px-0" : "flex-row px-1")}>
+                <SidebarMenuItem className="flex-1 w-full">
                   <SidebarMenuButton 
                     asChild 
                     tooltip="Edit Profile"
-                    className="h-10 rounded-none bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all flex items-center justify-center group/profile"
+                    className={cn(
+                        "h-10 rounded-none bg-muted/30 hover:bg-accent transition-all flex items-center group/profile",
+                        isCollapsed ? "justify-center px-0 mx-auto" : "justify-start px-3"
+                    )}
                   >
-                    <Link href="/profile" className="flex items-center w-full justify-center">
-                      <Pencil className="h-4 w-4 shrink-0 text-muted-foreground group-hover/profile:text-accent-foreground transition-colors" />
-                      {!isCollapsed && <span className="ml-3 text-[10px] uppercase tracking-[0.2em] font-bold w-full">Profile</span>}
+                    <Link href="/profile" className="flex items-center w-full">
+                      <Pencil className="h-4 w-4 shrink-0 text-muted-foreground group-hover/profile:text-accent-foreground" />
+                      {!isCollapsed && <span className="ml-3 text-[10px] uppercase tracking-[0.2em] font-bold">Profile</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
-                    tooltip="Toggle Theme"
-                    className={cn(
-                      "h-10 flex items-center justify-center rounded-none bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all group/theme",
-                      isCollapsed ? "w-full" : "w-12"
-                    )}
-                  >
-                    {theme === "dark" ? (
-                      <Sun className="h-4 w-4 shrink-0 text-muted-foreground group-hover/theme:text-accent-foreground transition-colors" />
+                <SidebarMenuItem className={isCollapsed ? "w-full" : "w-auto"}>
+                    {isCollapsed ? (
+                        <SidebarMenuButton 
+                            onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
+                            className="h-10 w-full mx-auto flex items-center justify-center rounded-none bg-muted/30 group/theme"
+                        >
+                            {theme === "dark" ? <Sun className="h-4 w-4 text-muted-foreground" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
+                        </SidebarMenuButton>
                     ) : (
-                      <Moon className="h-4 w-4 shrink-0 text-muted-foreground group-hover/theme:text-accent-foreground transition-colors" />
+                        <div className="flex items-center gap-3 bg-muted/30 h-10 px-3 rounded-none border border-transparent">
+                            <Moon className={cn("h-3 w-3", theme === "dark" ? "text-primary" : "text-muted-foreground")} />
+                            <Switch 
+                                checked={theme === "light"}
+                                onCheckedChange={(checked) => setTheme(checked ? "light" : "dark")}
+                                className="scale-75 data-[state=checked]:bg-primary"
+                            />
+                            <Sun className={cn("h-3 w-3", theme === "light" ? "text-primary" : "text-muted-foreground")} />
+                        </div>
                     )}
-                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </div>
 
-              <SidebarSeparator className="my-3 mx-2 opacity-50 bg-border" />
+              <SidebarSeparator className="my-2 mx-2 opacity-50" />
 
-              {/* Main Nav Items - ACTIVE Logic Applied */}
+              {/* Navigation Items */}
               {items.map((item) => {
                 const isActive = pathname === item.href
                 return (
@@ -190,23 +197,22 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                       className={cn(
-                        "h-12 flex items-center rounded-none transition-all duration-200 group/nav",
+                        "h-11 flex items-center rounded-none transition-all duration-200 group/nav relative",
                         isActive 
-                          ? "bg-primary border-l-4 border-primary-foreground shadow-inner" 
+                          ? "bg-primary/10 text-primary border-l-4 border-primary" 
                           : "border-l-4 border-transparent hover:bg-muted text-muted-foreground",
-                        isCollapsed ? "justify-center px-0" : "justify-start px-4"
+                        isCollapsed ? "justify-center px-0 mx-1.5" : "justify-start px-4"
                       )}
                     >
                       <Link href={item.href} className="flex items-center w-full">
                         <item.icon className={cn(
-                          "h-5 w-5 shrink-0 transition-colors", 
-                          // ACTIVE: Uses 'foreground' (Lighter in Dark Mode, Darker in Light Mode)
-                          isActive ? "text-foreground" : "text-muted-foreground group-hover/nav:text-foreground"
+                          "h-5 w-5 shrink-0 transition-colors mx-auto", // mx-auto ensures centering in collapsed state
+                          !isCollapsed && "mx-0",
+                          isActive ? "text-primary" : "text-muted-foreground group-hover/nav:text-foreground"
                         )} />
                         {!isCollapsed && (
                             <span className={cn(
-                                "ml-4 text-[10px] uppercase tracking-[0.2em] font-bold truncate transition-colors",
-                                // ACTIVE: Same logic for text
+                                "ml-4 text-[10px] uppercase tracking-[0.2em] font-bold truncate",
                                 isActive ? "text-foreground" : "text-muted-foreground group-hover/nav:text-foreground"
                             )}>
                                 {item.label}
@@ -221,19 +227,19 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className={cn("pb-8 border-t border-border", isCollapsed ? "px-0" : "px-3")}>
-          <SidebarMenu className="pt-4 gap-2">
+        <SidebarFooter className={cn("pb-8 border-t border-border bg-sidebar", isCollapsed ? "px-0" : "px-3")}>
+          <SidebarMenu className="pt-6 gap-1">
             <SidebarMenuItem>
               <SidebarMenuButton 
                 asChild 
                 tooltip="Settings" 
                 className={cn(
                   "h-10 border-l-4 border-transparent hover:bg-muted text-muted-foreground hover:text-foreground transition-all group/settings",
-                  isCollapsed ? "justify-center px-0" : "justify-start px-4"
+                  isCollapsed ? "justify-center px-0 mx-1.5" : "justify-start px-4"
                 )}
               >
                 <Link href="/settings" className="flex items-center w-full">
-                  <Settings className="h-4 w-4 shrink-0 text-muted-foreground group-hover/settings:text-foreground transition-colors" />
+                  <Settings className="h-4 w-4 shrink-0 mx-auto" style={!isCollapsed ? {marginInline: 0} : {}} />
                   {!isCollapsed && <span className="ml-4 text-[10px] uppercase tracking-widest font-bold">Settings</span>}
                 </Link>
               </SidebarMenuButton>
@@ -245,12 +251,12 @@ export function AppSidebar() {
                 tooltip="Sign Out"
                 className={cn(
                   "h-10 border-l-4 border-transparent hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all cursor-pointer group/logout",
-                  isCollapsed ? "justify-center px-0" : "justify-start px-4"
+                  isCollapsed ? "justify-center px-0 mx-1" : "justify-start px-4"
                 )}
               >
                 <div className="flex items-center w-full">
-                  <LogOut className="h-4 w-4 shrink-0 text-muted-foreground group-hover/logout:text-destructive transition-colors" />
-                  {!isCollapsed && <span className="ml-6 text-[10px] uppercase tracking-widest font-bold">Sign Out</span>}
+                  <LogOut className="h-4 w-4 shrink-0 mx-auto" style={!isCollapsed ? {marginInline: 0} : {}} />
+                  {!isCollapsed && <span className="ml-4 text-[10px] uppercase tracking-widest font-bold">Sign Out</span>}
                 </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
