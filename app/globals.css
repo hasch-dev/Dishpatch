@@ -161,3 +161,15 @@
 .available-date-style {
   @apply !bg-emerald-500/5 !text-emerald-600 !font-medium hover:!bg-emerald-500/20;
 }
+
+.request-tab {
+  @apply rounded-none border-b-2 border-transparent bg-transparent px-0 pb-4 text-[10px] uppercase tracking-[0.3em] font-bold transition-all;
+}
+
+.request-tab[data-state="active"] {
+  @apply border-primary text-primary !bg-transparent shadow-none;
+}
+
+.request-tab:hover {
+  @apply text-primary/70;
+}

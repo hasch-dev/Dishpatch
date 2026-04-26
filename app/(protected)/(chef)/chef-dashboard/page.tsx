@@ -1,341 +1,160 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
+import { 
+  PhilippinePeso, TrendingUp, Calendar, Utensils,
+  Clock, CheckCircle2, ArrowRight 
+} from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { LogOut, PhilippinePeso } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function ChefDashboardPage() {
+  const [data, setData] = useState<any>({ proposals: [], deals: [], profile: null });
   const [isLoading, setIsLoading] = useState(true);
-  const [proposals, setProposals] = useState<any[]>([]);
-  const [deals, setDeals] = useState<any[]>([]);
-
-  const [profile, setProfile] = useState<any>(null);
-  const [chefDetails, setChefDetails] = useState<any>(null);
-
-  const [activeTab, setActiveTab] = useState<
-    "pending" | "deals" | "completed" | "cancelled"
-  >("pending");
-
-  const [search, setSearch] = useState("");
-
-  const router = useRouter();
   const supabase = createClient();
 
-  const completedDeals = deals.filter((d) => d.deposit_paid && d.final_paid);
-  const pendingProposals = proposals.filter((p) => p.status === "pending");
-  const cancelledProposals = proposals.filter((p) => p.status === "cancelled");
-
   useEffect(() => {
-    const loadData = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return router.push("/auth/login");
+    const loadDashboard = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("display_name, location_address")
-        .eq("id", user.id)
-        .single();
+      const [prof, proposalsRes, dealsRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", user.id).single(),
+        fetch(`/api/proposals?chef_id=${user.id}`).then(res => res.json()),
+        fetch(`/api/deals?chef_id=${user.id}`).then(res => res.json())
+      ]);
 
-      if (profileData) setProfile(profileData);
-
-      const { data: chefData } = await supabase
-        .from("chef_details")
-        .select("cuisine_types, session_rate")
-        .eq("id", user.id)
-        .single();
-
-      if (chefData) setChefDetails(chefData);
-
-      const proposalsRes = await fetch(`/api/proposals?chef_id=${user.id}`);
-      const dealsRes = await fetch(`/api/deals?chef_id=${user.id}`);
-
-      if (proposalsRes.ok) {
-        const { data } = await proposalsRes.json();
-        setProposals(data);
-      }
-
-      if (dealsRes.ok) {
-        const { data } = await dealsRes.json();
-        setDeals(data);
-      }
-
+      setData({
+        profile: prof.data,
+        proposals: proposalsRes.data || [],
+        deals: dealsRes.data || []
+      });
       setIsLoading(false);
     };
-
-    loadData();
+    loadDashboard();
   }, []);
 
-  const cancelBooking = async (bookingId: string) => {
-    await supabase
-      .from("bookings")
-      .update({ status: "cancelled", chef_id: null })
-      .eq("id", bookingId);
+  const earnings = data.deals.reduce((sum: number, d: any) => sum + (d.deposit_paid ? d.deposit_amount : 0), 0);
+  const pendingCount = data.proposals.filter((p: any) => p.status === "pending").length;
+  const activeCount = data.deals.filter((d: any) => !d.final_paid).length;
 
-    setProposals((prev) =>
-      prev.map((p) =>
-        p.booking_id === bookingId ? { ...p, status: "cancelled" } : p,
-      ),
-    );
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/auth/login");
-  };
-
-  const earnings = deals.reduce(
-    (sum, d) => sum + (d.deposit_paid ? d.deposit_amount : 0),
-    0,
-  );
-
-  const filteredData = useMemo(() => {
-    const term = search.toLowerCase();
-
-    if (activeTab === "pending") {
-      return pendingProposals.filter((p) =>
-        p.booking.title.toLowerCase().includes(term),
-      );
-    }
-
-    if (activeTab === "deals") {
-      return deals.filter((d) =>
-        d.booking.title.toLowerCase().includes(term),
-      );
-    }
-
-    if (activeTab === "cancelled") {
-      return cancelledProposals.filter((p) =>
-        p.booking.title.toLowerCase().includes(term),
-      );
-    }
-
-    return completedDeals.filter((d) =>
-      d.booking.title.toLowerCase().includes(term),
-    );
-  }, [search, activeTab, pendingProposals, deals, completedDeals, cancelledProposals]);
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-svh items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent" />
-      </div>
-    );
-  }
+  if (isLoading) return <div className="p-10 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent" /></div>;
 
   return (
-    <div className="min-h-svh w-full bg-background text-foreground">
-      {/* HEADER */}
-      <header className="border-b bg-background">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <h1 className="font-semibold">Chef Dashboard</h1>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link href="/profile">
-              <Button variant="outline" size="sm">
-                Edit Profile
-              </Button>
-            </Link>
-
-            <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut size={16} />
-              Logout
-            </Button>
-          </div>
-        </div>
+    <div className="p-8 max-w-7xl mx-auto space-y-8">
+      <header>
+        <h1 className="text-4xl font-serif italic text-foreground">Welcome back, Chef {data.profile?.display_name?.split(' ')[0]}</h1>
+        <p className="text-muted-foreground mt-2 font-light italic">Here is your culinary performance overview.</p>
       </header>
 
-      {/* MAIN */}
-      <main className="max-w-7xl mx-auto px-3 py-6">
-        <div className="grid lg:grid-cols-[260px_1fr] gap-4">
-          {/* LEFT SIDE */}
-          <div className="space-y-3">
-            <Card className="border rounded-lg">
-              <CardContent className="p-4 space-y-2">
-                <p className="text-sm font-medium">
-                  {profile?.display_name || "Chef"}
-                </p>
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-primary text-primary-foreground border-none shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] uppercase tracking-[0.2em] opacity-80">Total Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold flex items-center gap-1">
+              <PhilippinePeso className="h-6 w-6" />
+              {earnings.toLocaleString()}
+            </div>
+            <p className="text-[10px] mt-2 opacity-70 flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" /> +12% from last month
+            </p>
+          </CardContent>
+        </Card>
 
-                <p className="text-xs text-muted-foreground">
-                  {profile?.location_address || "No location set"}
-                </p>
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Active Deals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{activeCount}</div>
+            <p className="text-[10px] mt-2 text-primary font-bold italic">Currently in progress</p>
+          </CardContent>
+        </Card>
 
-                {chefDetails?.cuisine_types?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {chefDetails.cuisine_types.slice(0, 3).map((c: string) => (
-                      <span
-                        key={c}
-                        className="text-xs bg-primary/10 text-primary px-2 py-1 rounded"
-                      >
-                        {c}
-                      </span>
-                    ))}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Pending Proposals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{pendingCount}</div>
+            <p className="text-[10px] mt-2 text-muted-foreground italic">Awaiting client response</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Upcoming Sessions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">4</div>
+            <p className="text-[10px] mt-2 text-muted-foreground italic">Scheduled this week</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* RECENT ACTIVITY */}
+        <Card className="lg:col-span-2 border-border bg-card/50 backdrop-blur">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="font-serif italic text-xl">Next Scheduled Sessions</CardTitle>
+            <Link href="/requests">
+              <Button variant="ghost" size="sm" className="text-xs uppercase tracking-widest text-primary">
+                View All <ArrowRight className="ml-2 h-3 w-3" />
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {data.deals.slice(0, 3).map((deal: any) => (
+              <div key={deal.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-background hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <Calendar className="h-5 w-5" />
                   </div>
-                )}
-
-                {chefDetails?.session_rate > 0 && (
-                  <p className="text-sm font-semibold text-primary flex items-center gap-1 mt-2">
-                    <PhilippinePeso size={14} />
-                    {chefDetails.session_rate}/session
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border rounded-lg">
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Pending</p>
-                <p className="text-xl font-semibold">
-                  {pendingProposals.length}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border rounded-lg">
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Deals</p>
-                <p className="text-xl font-semibold">{deals.length}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border rounded-lg">
-              <CardContent className="p-3 flex flex-col gap-2">
-                <p className="text-xs text-muted-foreground">Earnings</p>
-                <p className="text-xl font-semibold text-primary flex gap-1">
-                  <PhilippinePeso />
-                  {earnings.toFixed(2)}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* RIGHT SIDE */}
-          <div className="space-y-3">
-            {/* TOP BAR */}
-            <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-between">
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant={activeTab === "pending" ? "default" : "outline"}
-                  onClick={() => setActiveTab("pending")}
-                >
-                  Pending ({pendingProposals.length})
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant={activeTab === "deals" ? "default" : "outline"}
-                  onClick={() => setActiveTab("deals")}
-                >
-                  Active ({deals.length})
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant={activeTab === "completed" ? "default" : "outline"}
-                  onClick={() => setActiveTab("completed")}
-                >
-                  Completed ({completedDeals.length})
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant={activeTab === "cancelled" ? "default" : "outline"}
-                  onClick={() => setActiveTab("cancelled")}
-                >
-                  Cancelled ({cancelledProposals.length})
-                </Button>
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-tight">{deal.booking.title}</p>
+                    <p className="text-[10px] text-muted-foreground italic">{deal.booking.event_date}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] bg-muted px-2 py-1 rounded font-bold uppercase tracking-widest text-muted-foreground">Confirmed</span>
+                </div>
               </div>
+            ))}
+          </CardContent>
+        </Card>
 
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Search client / booking..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="max-w-xs"
-                />
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => router.push("/requests")}
-                >
-                  Find a Client
+        {/* QUICK ACTIONS */}
+        <div className="space-y-4">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground px-2">Quick Actions</h4>
+            <Link href="/requests" className="block w-full">
+                <Button className="w-full justify-start h-16 rounded-2xl bg-card border border-border text-foreground hover:bg-muted group">
+                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                        <Clock className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div className="text-left">
+                        <p className="text-sm font-bold">Manage Requests</p>
+                        <p className="text-[10px] text-muted-foreground italic">Respond to new clients</p>
+                    </div>
                 </Button>
-              </div>
-            </div>
-
-            {/* CONTENT */}
-            <div className="space-y-2 min-h-[600px]">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-2"
-                >
-                  {filteredData.length === 0 ? (
-                    <Card>
-                      <CardContent className="p-4 text-center text-muted-foreground">
-                        No results found
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    filteredData.map((item: any) => (
-                      <Card
-                        key={item.id}
-                        className="border rounded-lg hover:shadow-sm transition"
-                      >
-                        <CardContent className="p-4 space-y-1">
-                          <h3 className="font-medium text-sm">
-                            {item.booking.title}
-                          </h3>
-
-                          <p className="text-xs text-muted-foreground">
-                            {item.booking.event_date}
-                          </p>
-
-                          <Link href={`/booking/${item.booking_id}`}>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full mt-2"
-                            >
-                              View
-                            </Button>
-                          </Link>
-
-                          {activeTab !== "cancelled" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full mt-2"
-                              onClick={() => cancelBooking(item.booking_id)}
-                            >
-                              Cancel
-                            </Button>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
+            </Link>
+            <Link href="/menu" className="block w-full">
+                <Button className="w-full justify-start h-16 rounded-2xl bg-card border border-border text-foreground hover:bg-muted group">
+                    <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                        <Utensils className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <div className="text-left">
+                        <p className="text-sm font-bold">Update Menu</p>
+                        <p className="text-[10px] text-muted-foreground italic">Refresh your offerings</p>
+                    </div>
+                </Button>
+            </Link>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

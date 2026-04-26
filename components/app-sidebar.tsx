@@ -130,7 +130,7 @@ export function AppSidebar() {
           </div>
         </SidebarHeader>
 
-        <SidebarContent className="bg-sidebar custom-scrollbar">
+        <SidebarContent className="bg-sidebar custom-scrollbar h-auto">
           {!isCollapsed && (
             <div className="px-6 pt-8 pb-4 whitespace-nowrap overflow-hidden">
               <p className="text-[8px] uppercase tracking-[0.3em] text-primary font-bold mb-1">
@@ -152,18 +152,18 @@ export function AppSidebar() {
                     asChild 
                     tooltip="Edit Profile"
                     className={cn(
-                        "h-10 rounded-none bg-muted/30 hover:bg-accent transition-all flex items-center group/profile",
+                        "h-8 w-full rounded-none bg-muted/30 hover:bg-primary transition-all flex items-center group/profile",
                         isCollapsed ? "justify-center px-0 mx-auto" : "justify-start px-3"
                     )}
                   >
                     <Link href="/profile" className="flex items-center w-full">
                       <Pencil className="h-4 w-4 shrink-0 text-muted-foreground group-hover/profile:text-accent-foreground" />
-                      {!isCollapsed && <span className="ml-3 text-[10px] uppercase tracking-[0.2em] font-bold">Profile</span>}
+                      {!isCollapsed && <span className="ml-3 text-[10px] uppercase tracking-[0.2em] font-bold group-hover/profile:text-accent-foreground">Profile</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 
-                <SidebarMenuItem className={isCollapsed ? "w-full" : "w-auto"}>
+                <SidebarMenuItem className={isCollapsed ? "w-full" : "w-full"}>
                     {isCollapsed ? (
                         <SidebarMenuButton 
                             onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
@@ -197,7 +197,7 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                       className={cn(
-                        "h-11 flex items-center rounded-none transition-all duration-200 group/nav relative",
+                        "h-8 flex items-center rounded-none transition-all duration-200 group/nav relative",
                         isActive 
                           ? "bg-primary/10 text-primary border-l-4 border-primary" 
                           : "border-l-4 border-transparent hover:bg-muted text-muted-foreground",
@@ -227,8 +227,8 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className={cn("pb-8 border-t border-border bg-sidebar", isCollapsed ? "px-0" : "px-3")}>
-          <SidebarMenu className="pt-6 gap-1">
+        <SidebarFooter className={cn("pb-4 border-t border-border bg-sidebar", isCollapsed ? "px-0" : "px-3")}>
+          <SidebarMenu className="pt-2 gap-1">
             <SidebarMenuItem>
               <SidebarMenuButton 
                 asChild 
@@ -256,7 +256,7 @@ export function AppSidebar() {
               >
                 <div className="flex items-center w-full">
                   <LogOut className="h-4 w-4 shrink-0 mx-auto" style={!isCollapsed ? {marginInline: 0} : {}} />
-                  {!isCollapsed && <span className="ml-4 text-[10px] uppercase tracking-widest font-bold">Sign Out</span>}
+                  {!isCollapsed && <span className="ml-6 text-[10px] uppercase tracking-widest font-bold">Sign Out</span>}
                 </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
