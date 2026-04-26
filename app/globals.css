@@ -3,15 +3,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@import 'tailwindcss';
-@import 'tw-animate-css';
-
-@custom-variant dark (&:is(.dark *));
-
 :root {
-  /* Polished Marble - Soft ivory with a hint of cool stone */
+  /* Polished Marble */
   --background: oklch(0.99 0.005 260); 
-  --foreground: oklch(0.18 0.03 260); /* Softened Midnight - Not pure black */
+  --foreground: oklch(0.18 0.03 260);
   
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.03 260);
@@ -19,11 +14,9 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.03 260);
 
-  /* The Gold: 24k Brushed Gold - Balanced chroma for luxury, not neon */
   --primary: oklch(0.72 0.11 80); 
   --primary-foreground: oklch(0.15 0.02 260);
 
-  /* Deep Royal Navy - Used for heavy elements/headers */
   --secondary: oklch(0.22 0.04 260); 
   --secondary-foreground: oklch(0.98 0.005 260);
 
@@ -33,7 +26,6 @@
   --accent: oklch(0.72 0.11 80);
   --accent-foreground: oklch(0.15 0.02 260);
 
-  /* Crimson Silk */
   --destructive: oklch(0.50 0.15 25);
   --destructive-foreground: oklch(0.98 0.005 260);
 
@@ -41,31 +33,28 @@
   --input: oklch(0.90 0.01 260);
   --ring: oklch(0.72 0.11 80);
 
-  /* Jewel Tone Charts */
-  --chart-1: oklch(0.72 0.11 80); /* Gold */
-  --chart-2: oklch(0.28 0.05 260); /* Navy */
-  --chart-3: oklch(0.55 0.10 160); /* Sage/Emerald */
-  --chart-4: oklch(0.60 0.12 35);  /* Rose Gold/Ruby */
+  --chart-1: oklch(0.72 0.11 80);
+  --chart-2: oklch(0.28 0.05 260);
+  --chart-3: oklch(0.55 0.10 160);
+  --chart-4: oklch(0.60 0.12 35);
+  --chart-5: oklch(0.85 0.05 200); /* Added missing chart 5 */
 
-  --radius: 0.5rem; /* Sharper for a more modern, tailored look */
+  --radius: 0.5rem;
 }
 
 .dark {
-  /* Deep Obsidian - Lowering chroma and bumping lightness so it's "Soft Black" */
   --background: oklch(0.16 0.02 260); 
-  --foreground: oklch(0.93 0.01 80); /* Off-white with a hint of gold warmth */
+  --foreground: oklch(0.93 0.01 80);
   
-  --card: oklch(0.19 0.02 260); /* Slightly lighter than background for depth */
+  --card: oklch(0.19 0.02 260);
   --card-foreground: oklch(0.93 0.01 80);
   
   --popover: oklch(0.16 0.02 260);
   --popover-foreground: oklch(0.93 0.01 80);
 
-  /* Luminous Champagne Gold */
   --primary: oklch(0.78 0.09 85); 
   --primary-foreground: oklch(0.12 0.02 260);
 
-  /* Midnight Velvet */
   --secondary: oklch(0.22 0.03 260);
   --secondary-foreground: oklch(0.78 0.09 85);
 
@@ -86,9 +75,8 @@
   --sidebar-accent: oklch(0.20 0.02 260);
   --sidebar-accent-foreground: oklch(0.78 0.09 85);
   --sidebar-border: oklch(0.24 0.02 260);
+  --sidebar-ring: oklch(0.78 0.09 85); /* Added to prevent theme error */
 }
-
-/* ... @theme and @layer base blocks remain the same ... */
 
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
@@ -118,10 +106,12 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -139,4 +129,35 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+}
+
+@layer utilities {
+  .vertical-text {
+    writing-mode: vertical-rl;
+  }
+}
+
+/* Studio Calendar States */
+.booked-date-style {
+  @apply bg-destructive/10 text-destructive line-through opacity-40 cursor-not-allowed;
+  important: true; /* Tailwind 4 way */
+  /* Or use standard CSS if the above fails: */
+  background-color: oklch(0.50 0.15 25 / 0.1) !important;
+}
+
+/* Let's use the cleanest syntax that works for both Webpack and Tailwind 4: */
+.booked-date-style {
+  @apply !bg-destructive/10 !text-destructive !line-through !opacity-40 !cursor-not-allowed;
+}
+
+.buffer-date-style {
+  @apply !bg-muted !text-muted-foreground/30 !opacity-50 !cursor-not-allowed;
+}
+
+.pending-date-style {
+  @apply !bg-amber-400/20 !text-amber-700 !font-medium !border !border-amber-200/50 hover:!bg-amber-400/40;
+}
+
+.available-date-style {
+  @apply !bg-emerald-500/5 !text-emerald-600 !font-medium hover:!bg-emerald-500/20;
 }

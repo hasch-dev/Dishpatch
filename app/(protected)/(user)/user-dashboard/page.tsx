@@ -2,52 +2,66 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { 
-  Plus, Calendar, Users, ChefHat, 
-  Search, DollarSign, X, Trash2, Hash, ArrowRight, MapPin
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle, 
+  SheetDescription 
+} from "@/components/ui/sheet"
+import { 
+  ChefHat, 
+  Trash2, 
+  Edit3, 
+  Plus, 
+  ArrowUpRight, 
+  AlertCircle,
+  X 
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, Variants } from 'framer-motion'
+import { format, parseISO } from 'date-fns'
+
+// --- DIAGNOSTIC TYPES ---
+type ModalConfig = {
+  title: string;
+  message: string;
+  type: 'warning' | 'error';
+  onConfirm?: () => void;
+  confirmLabel?: string;
+} | null;
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
   const [userBookings, setUserBookings] = useState<any[]>([])
   const [selectedBooking, setSelectedBooking] = useState<any | null>(null)
-  const [userName, setUserName] = useState("Member")
-
+  const [modal, setModal] = useState<ModalConfig>(null)
+  
   const router = useRouter()
   const supabase = createClient()
 
-  const handleCreateNew = () => {
-    router.push('/booking/new')
-  }
-
+  // --- DATA ACQUISITION & ERROR BOUNDARY ---
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) { router.push('/auth/login'); return }
-
-        const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', user.id).single()
-        if (profile?.display_name) setUserName(profile.display_name)
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError || !user) {
+          router.push('/auth/login')
+          return
+        }
         
-        const { data, error } = await supabase
+        const { data, error: fetchError } = await supabase
           .from('bookings')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-
-        if (!error) {
-          setUserBookings(data || []) 
-        }
-      } catch (error) {
-        console.error("Dashboard error:", error)
+        
+        if (fetchError) throw fetchError
+        setUserBookings(data ?? [])
+      } catch (err) {
+        console.error("Studio Sync Error:", err)
       } finally {
         setIsLoading(false)
       }
@@ -55,212 +69,232 @@ export default function DashboardPage() {
     loadDashboard()
   }, [router, supabase])
 
-  const handleCancel = async (e: React.MouseEvent, id: string) => {
+  // --- ACTION HANDLERS ---
+  const handleCancelAttempt = (e: React.MouseEvent, booking: any) => {
     e.stopPropagation()
-    if (!window.confirm("Retire this engagement?")) return
-    
-    const { error } = await supabase.from('bookings').delete().eq('id', id)
-    if (!error) {
-        setUserBookings(prev => prev.filter(b => b.id !== id))
-        if (selectedBooking?.id === id) setSelectedBooking(null)
+    if (booking.status !== 'pending_assignment') {
+      setModal({
+        title: "Dossier Locked",
+        message: "Artisan review has commenced. Status modifications are currently restricted.",
+        type: 'error'
+      })
+      return
     }
+
+    setModal({
+      title: "Confirm Withdrawal",
+      message: "Are you certain you wish to withdraw this commission? This action will purge the archive record.",
+      type: 'warning',
+      confirmLabel: "Withdraw Commission",
+      onConfirm: async () => {
+        const { error } = await supabase.from('bookings').delete().eq('id', booking.id)
+        if (!error) {
+          setUserBookings(prev => prev.filter(b => b.id !== booking.id))
+          setModal(null)
+        }
+      }
+    })
   }
 
-  const filteredBookings = userBookings.filter(b => 
-    b.title?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const handleEditAttempt = (e: React.MouseEvent, booking: any) => {
+    e.stopPropagation()
+    if (booking.edit_count >= 2) {
+      setModal({
+        title: "Revision Limit",
+        message: "Security clearance limit reached (2/2). Contact the studio for manual override.",
+        type: 'error'
+      })
+      return
+    }
+    router.push(`/booking/edit/${booking.id}`)
+  }
+
+  const showDate = (d: string) => {
+    try { return d ? format(parseISO(d), 'MMM dd, yyyy') : 'TBD' } catch { return 'TBD' }
+  }
+
+  // --- TYPED ANIMATION VARIANTS (Fixes "variants" error) ---
+  const cardVariants: Variants = {
+    initial: { opacity: 0, y: 12 },
+    animate: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { 
+        y: { type: "spring", stiffness: 100, damping: 20 },
+        opacity: { duration: 0.4 } 
+      } 
+    },
+    exit: { opacity: 0, scale: 0.98, transition: { duration: 0.2 } },
+    hover: {
+      y: -6,
+      borderColor: "var(--primary)", // Simplified for stability
+      boxShadow: "0 20px 40px -12px rgba(0,0,0,0.15)",
+      transition: { type: "spring", stiffness: 300, damping: 25 }
+    }
+  };
 
   if (isLoading) return (
-    <div className="h-screen w-full flex items-center justify-center bg-background italic font-serif text-muted-foreground font-medium tracking-widest transition-colors duration-500">
-        Initialising Studio...
+    <div className="h-screen flex items-center justify-center bg-background">
+      <div className="font-serif text-[10px] tracking-[0.5em] animate-pulse opacity-40 uppercase italic">Synchronizing_Studio...</div>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-accent transition-colors duration-500">
-      
-      {/* STUDIO NAV */}
-      <nav className="h-14 border-b border-border bg-card sticky top-0 z-40 px-6 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary text-primary-foreground p-1">
-             <ChefHat className="h-4 w-4" />
-          </div>
-          <h1 className="font-serif text-sm tracking-widest uppercase font-bold">
-            Dishpatch <span className="text-muted-foreground font-light ml-2">Studio</span>
-          </h1>
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/10">
+      {/* NAV */}
+      <nav className="h-16 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-50 border-b border-border/40">
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => router.push('/')}>
+          <ChefHat className="h-4 w-4 text-primary transition-transform group-hover:rotate-12" />
+          <span className="font-serif text-xs tracking-widest font-bold uppercase tracking-[0.2em]">Dishpatch</span>
         </div>
-        <Button 
-          onClick={handleCreateNew} 
-          className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-none h-8 px-5 text-[9px] font-bold uppercase tracking-widest transition-all"
-        >
-          <Plus className="mr-2 h-3 w-3" /> New File
+        <Button onClick={() => router.push('/booking/new')} size="sm" className="rounded-none h-9 px-6 text-[9px] uppercase tracking-widest font-bold">
+          <Plus className="mr-2 h-3 w-3" /> Initiate Commission
         </Button>
       </nav>
 
-      <main className="max-w-[1300px] mx-auto px-8 pt-12 pb-20">
-        
-        {/* HEADER & SEARCH */}
-        <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <main className="max-w-5xl mx-auto px-8 py-16">
+        <header className="mb-16 flex items-end justify-between border-b border-border/20 pb-8">
           <div className="space-y-1">
-            <h2 className="text-3xl font-serif text-foreground leading-tight tracking-tight">Welcome, {userName}.</h2>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] flex items-center gap-2">
-               <Hash className="h-3 w-3 text-primary" /> Active Dossiers: {filteredBookings.length}
-            </p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-primary">Archive</p>
+            <h2 className="text-4xl font-serif tracking-tighter italic leading-none">Studio Collection</h2>
           </div>
-
-          <div className="relative group">
-            <Input 
-              placeholder="Search database..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 h-10 bg-card border-border rounded-none shadow-sm focus-visible:ring-1 focus-visible:ring-primary italic text-xs transition-all pl-10"
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <div className="flex gap-8">
+            <Stat label="Active" value={userBookings.length} />
+            <Stat label="Pending" value={userBookings.filter(b => b.status === 'pending_assignment').length} />
           </div>
         </header>
 
-        {/* BOOKING GRID */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <AnimatePresence mode='popLayout'>
-            {filteredBookings.map((booking) => (
+        {/* GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <AnimatePresence mode="popLayout">
+            {userBookings.map((booking) => (
               <motion.div 
                 key={booking.id}
-                layout
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                variants={cardVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                whileHover="hover"
                 onClick={() => setSelectedBooking(booking)}
-                className="group relative bg-card border border-border rounded-sm hover:border-primary transition-all cursor-pointer flex flex-col h-64 shadow-sm overflow-hidden"
+                className="group bg-card border border-border/60 p-10 flex flex-col justify-between aspect-[3/2] cursor-pointer relative"
               >
-                <div className={cn(
-                  "h-1 w-full",
-                  booking.status === 'confirmed' ? "bg-emerald-500" : "bg-amber-400"
-                )} />
-
-                <div className="p-5 flex flex-col h-full">
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="text-[8px] font-mono text-muted-foreground uppercase tracking-tighter">REF: {booking.id.slice(0, 8)}</span>
-                    <button 
-                      onClick={(e) => handleCancel(e, booking.id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                <div className="flex justify-between items-start">
+                  <div className={cn(
+                    "text-[8px] font-bold uppercase tracking-widest px-2 py-1 border",
+                    booking.status === 'confirmed' ? "text-emerald-600 border-emerald-500/20 bg-emerald-500/5" : "text-primary border-primary/20 bg-primary/5"
+                  )}>
+                    {booking.status.replace(/_/g, ' ')}
                   </div>
+                  <ArrowUpRight className="h-4 w-4 opacity-10 group-hover:opacity-100 transition-opacity" />
+                </div>
 
-                  <h3 className="text-lg font-serif font-medium text-foreground leading-snug line-clamp-2 mb-6 group-hover:italic transition-all">
-                    {booking.title || "Untitled Engagement"}
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-serif leading-tight group-hover:italic transition-all truncate">
+                    {booking.title || "Untitled Commission"}
                   </h3>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+                    {booking.booking_type} • {showDate(booking.event_date)}
+                  </p>
+                </div>
 
-                  <div className="space-y-2 mb-auto">
-                    <div className="flex justify-between text-[9px] border-b border-border pb-1">
-                      <span className="text-muted-foreground uppercase font-bold tracking-tighter">Engagement</span>
-                      <span className="font-medium text-foreground italic uppercase tracking-widest text-[8px]">{booking.booking_type}</span>
-                    </div>
-                    <div className="flex justify-between text-[9px] border-b border-border pb-1">
-                      <span className="text-muted-foreground uppercase font-bold tracking-tighter">Attendance</span>
-                      <span className="font-medium text-foreground italic">{booking.guest_count || '1'} PAX</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-border">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-foreground">
-                      <DollarSign className="h-3 w-3 text-emerald-600" />
-                      <span>{booking.budget ? `$${Number(booking.budget).toLocaleString()}` : 'Quote Pending'}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[8px] text-muted-foreground font-bold uppercase tracking-widest">
-                       <Calendar className="h-2.5 w-2.5" />
-                       {booking.event_date || 'TBD'}
-                    </div>
-                  </div>
+                <div className="pt-6 flex items-center justify-between border-t border-border/10">
+                   <div className="text-[9px] font-mono opacity-30 uppercase tracking-tighter">Clearance: {booking.edit_count}/2</div>
+                   <div className="flex gap-5 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                      <button onClick={(e) => handleEditAttempt(e, booking)} className="hover:text-primary transition-colors"><Edit3 className="h-4 w-4" /></button>
+                      <button onClick={(e) => handleCancelAttempt(e, booking)} className="hover:text-destructive transition-colors"><Trash2 className="h-4 w-4" /></button>
+                   </div>
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
-
-          <div 
-            onClick={handleCreateNew}
-            className="border-2 border-dashed border-border flex flex-col items-center justify-center p-6 space-y-3 cursor-pointer hover:bg-card hover:border-primary transition-all h-64 group"
-          >
-            <div className="h-10 w-10 bg-muted flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-              <Plus className="h-5 w-5" />
-            </div>
-            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted-foreground">Commission File</p>
-          </div>
         </div>
       </main>
 
-      {/* ENGAGEMENT DOSSIER (SIDE DRAWER) */}
-      <Sheet open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
-        <SheetContent className="w-full sm:max-w-md bg-card border-l border-border p-0 flex flex-col shadow-2xl">
-          {selectedBooking && (
-            <>
-              <div className="p-10 bg-primary text-primary-foreground">
-                <div className="flex items-center justify-between mb-6">
-                  <Badge className="bg-emerald-500 hover:bg-emerald-500 rounded-none text-[8px] uppercase tracking-widest text-white">
-                    {selectedBooking.status?.replace('_', ' ') || 'Pending Review'}
-                  </Badge>
-                  <button onClick={(e) => handleCancel(e, selectedBooking.id)} className="text-primary-foreground/60 hover:text-primary-foreground">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+      {/* --- CUSTOM STUDIO MODAL --- */}
+      <AnimatePresence>
+        {modal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setModal(null)}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm bg-card border border-border p-10 shadow-2xl space-y-8"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className={cn("h-5 w-5", modal.type === 'error' ? "text-destructive" : "text-primary")} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground">Studio Notice</span>
                 </div>
-                <h2 className="text-3xl font-serif italic leading-tight">{selectedBooking.title}</h2>
-                <p className="text-[10px] uppercase tracking-[0.3em] mt-4 opacity-50 font-bold">Client Archive</p>
+                <button onClick={() => setModal(null)} className="hover:rotate-90 transition-transform"><X className="h-4 w-4 opacity-40"/></button>
               </div>
-
-              <div className="flex-1 p-10 space-y-8 overflow-y-auto">
-                <div className="grid grid-cols-2 gap-y-8 gap-x-10">
-                  {[
-                    ['Member', userName], 
-                    ['Engagement', selectedBooking.booking_type], 
-                    ['Attendance', `${selectedBooking.guest_count || 1} Pax`], 
-                    ['Date', selectedBooking.event_date || 'TBD'],
-                    ['Location', selectedBooking.location_address || 'TBD'],
-                    ['Budget', selectedBooking.budget ? `$${selectedBooking.budget}` : 'Pending']
-                  ].map(([label, val]) => (
-                    <div key={label} className="space-y-1">
-                      <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-widest">{label}</p>
-                      <p className="text-sm font-serif italic text-foreground">{val || '—'}</p>
-                    </div>
-                  ))}
-                </div>
-                
-                {selectedBooking.dietary_restrictions && (
-                  <div className="space-y-2">
-                    <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-widest">Dietary Restrictions</p>
-                    <p className="text-xs font-serif italic text-muted-foreground">{selectedBooking.dietary_restrictions}</p>
-                  </div>
+              <div className="space-y-3">
+                <h3 className="text-3xl font-serif italic tracking-tighter leading-none">{modal.title}</h3>
+                <p className="text-sm font-serif italic text-muted-foreground leading-relaxed">"{modal.message}"</p>
+              </div>
+              <div className="flex justify-end gap-6 pt-4">
+                <Button variant="ghost" onClick={() => setModal(null)} className="text-[9px] uppercase tracking-widest hover:bg-transparent">Dismiss</Button>
+                {modal.onConfirm && (
+                  <Button onClick={modal.onConfirm} className="rounded-none bg-destructive text-destructive-foreground h-10 px-6 text-[9px] uppercase tracking-widest font-bold">
+                    {modal.confirmLabel || "Confirm"}
+                  </Button>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-                <div className="p-6 border-l-2 border-primary bg-muted/50 space-y-2">
-                   <p className="text-[10px] font-bold uppercase tracking-widest text-foreground">Studio Directive</p>
-                   <p className="text-xs italic text-muted-foreground leading-relaxed font-serif">
-                     {selectedBooking.chef_id 
-                        ? 'An artisan has been formally assigned to this file. Communications are now active.' 
-                        : 'Your dossier is currently being reviewed by the Studio curators for artisan matching.'}
-                   </p>
+      {/* --- DETAIL SHEET --- */}
+      <Sheet open={!!selectedBooking} onOpenChange={(o) => !o && setSelectedBooking(null)}>
+        <SheetContent className="w-full sm:max-w-md bg-background border-l border-border/40 p-0 flex flex-col">
+          {/* ACCESSIBILITY FIX: Visually Hidden Header */}
+          <SheetHeader className="sr-only">
+            <SheetTitle>Commission Dossier: {selectedBooking?.title || 'Details'}</SheetTitle>
+            <SheetDescription>Archive records and creative directives for this engagement.</SheetDescription>
+          </SheetHeader>
+
+          {selectedBooking && (
+            <div className="flex flex-col h-full">
+              <div className="p-10 border-b border-border/40 bg-muted/10">
+                <p className="text-[8px] uppercase font-bold text-primary mb-2 tracking-[0.3em]">Commission Dossier</p>
+                <h2 className="text-3xl font-serif italic tracking-tighter leading-none">{selectedBooking.title}</h2>
+              </div>
+              <div className="flex-1 p-10 space-y-12 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-10">
+                  <MiniDetail label="Timeline" value={showDate(selectedBooking.event_date)} />
+                  <MiniDetail label="Pax" value={selectedBooking.guest_count} />
+                  <MiniDetail label="Budget" value={`$${selectedBooking.budget || '0'}`} />
+                  <MiniDetail label="Status" value={selectedBooking.status.replace(/_/g, ' ')} />
+                </div>
+                <div className="pt-8 border-t border-border/40">
+                  <p className="text-[9px] font-bold uppercase opacity-40 mb-4 tracking-widest">Creative Directive</p>
+                  <p className="text-md font-serif leading-relaxed italic text-foreground/80">"{selectedBooking.notes || 'No specific directives provided.'}"</p>
                 </div>
               </div>
-
-              <div className="p-10 border-t border-border flex flex-col gap-3">
-                <Button 
-                    onClick={() => router.push('/user-messages')} 
-                    className="w-full h-12 rounded-none bg-primary text-primary-foreground font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-primary/90 transition-all"
-                >
-                  Go to Engagement Hub
-                </Button>
-                <Button 
-                    variant="outline" 
-                    onClick={() => setSelectedBooking(null)} 
-                    className="w-full rounded-none border-border text-muted-foreground text-[9px] font-bold uppercase tracking-widest h-10 transition-all hover:bg-accent"
-                >
-                  Close Archive
-                </Button>
+              <div className="p-8 border-t border-border/40 flex justify-end bg-muted/5">
+                <Button variant="ghost" className="text-[9px] uppercase tracking-widest hover:bg-transparent" onClick={() => setSelectedBooking(null)}>Close Archive</Button>
               </div>
-            </>
+            </div>
           )}
         </SheetContent>
       </Sheet>
     </div>
   )
 }
+
+const Stat = ({ label, value }: { label: string, value: number }) => (
+  <div className="flex items-baseline gap-3">
+    <span className="text-[8px] uppercase font-bold opacity-30 tracking-[0.2em]">{label}</span>
+    <span className="text-3xl font-serif italic leading-none">{value}</span>
+  </div>
+)
+
+const MiniDetail = ({ label, value }: { label: string, value: any }) => (
+  <div className="space-y-1.5">
+    <p className="text-[8px] uppercase font-bold text-muted-foreground tracking-[0.15em]">{label}</p>
+    <p className="text-lg font-serif">{value}</p>
+  </div>
+)

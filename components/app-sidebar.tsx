@@ -27,27 +27,42 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-export function AppSidebar({ role }: { role: "chef" | "user" }) {
+export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const { theme, setTheme } = useTheme()
+  
   const [profile, setProfile] = React.useState<any>(null)
+  const [role, setRole] = React.useState<"chef" | "user" | null>(null)
   const [mounted, setMounted] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState(true)
   
   const { toggleSidebar, state, isMobile } = useSidebar()
   const isCollapsed = state === "collapsed"
 
-  React.useEffect(() => setMounted(true), [])
-
   React.useEffect(() => {
-    const load = async () => {
+    setMounted(true)
+    const loadIdentity = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase.from("profiles").select("display_name").eq("id", user.id).single()
-      if (data) setProfile(data)
+      if (!user) {
+        setIsLoading(false)
+        return
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, user_type")
+        .eq("id", user.id)
+        .single()
+
+      if (data) {
+        setProfile(data)
+        setRole(data.user_type as "chef" | "user")
+      }
+      setIsLoading(false)
     }
-    load()
+    loadIdentity()
   }, [supabase])
 
   const handleLogout = async () => {
@@ -58,17 +73,18 @@ export function AppSidebar({ role }: { role: "chef" | "user" }) {
   const items = role === "chef" ? [
     { label: "Dashboard", href: "/chef-dashboard", icon: LayoutDashboard },
     { label: "Requests", href: "/requests", icon: ClipboardList },
-    { label: "Messages", href: "/messages", icon: MessageSquare },
+    { label: "Messages", href: "/chef/messages", icon: MessageSquare }, // Fixed Chef path
     { label: "Calendar", href: "/calendar", icon: Calendar },
-    { label: "Payments", href: "/payments", icon: CreditCard },
     { label: "Partners", href: "/partners", icon: Users },
-    { label: "Menu", href: "/menu", icon: Utensils },
+    { label: "Gastronomic Menu", href: "/menu", icon: Utensils },
   ] : [
     { label: "Dashboard", href: "/user-dashboard", icon: LayoutDashboard },
-    { label: "Messages", href: "/messages", icon: MessageSquare },
+    { label: "Messages", href: "/user/messages", icon: MessageSquare }, // Fixed User path
     { label: "Calendar", href: "/calendar", icon: Calendar },
-    { label: "Payments", href: "/payments", icon: CreditCard },
+    { label: "Payments & Billing", href: "/payments", icon: CreditCard }, // Updated label
   ]
+
+  if (isLoading || !mounted) return <div className="w-[var(--sidebar-width-icon)] h-full bg-sidebar border-r border-border" />
 
   return (
     <>
@@ -90,22 +106,22 @@ export function AppSidebar({ role }: { role: "chef" | "user" }) {
         </Button>
       )}
 
-      <Sidebar collapsible="icon" className="border-r border-border bg-sidebar shadow-xl">
-        
-        <SidebarHeader className="h-20 flex items-center bg-sidebar border-b border-border shrink-0 p-0 pt-4">
+      <Sidebar collapsible="icon" className="border-r border-border bg-sidebar shadow-xl overflow-hidden">
+        {/* Header - Brand Colors */}
+        <SidebarHeader className="h-20 flex justify-center bg-sidebar border-b border-border shrink-0 p-0">
           <div className={cn(
-            "flex w-full items-center transition-all duration-300 px-5",
-            isCollapsed ? "justify-center px-0" : "justify-start"
+            "flex w-full items-center transition-all duration-300",
+            isCollapsed ? "justify-center" : "px-6 justify-start"
           )}>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-primary text-primary-foreground border border-border shadow-sm">
-              <ChefHat className="h-5 w-5" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary text-primary-foreground border border-border">
+              <ChefHat className="h-6 w-6" />
             </div>
             {!isCollapsed && (
-              <div className="ml-4 flex flex-col items-start animate-in fade-in slide-in-from-left-2 duration-300">
-                <span className="font-serif text-[16px] tracking-widest uppercase text-sidebar-foreground leading-none">
-                  Dish<span className="italic text-primary">patch</span>
+              <div className="ml-4 flex flex-col items-start overflow-hidden whitespace-nowrap animate-in fade-in duration-300">
+                <span className="font-serif text-[16px] tracking-widest uppercase text-foreground">
+                    Dish<span className="italic text-primary">patch</span>
                 </span>
-                <span className="text-[7px] uppercase tracking-[0.5em] text-muted-foreground font-bold mt-1.5 leading-none">
+                <span className="text-[7px] uppercase tracking-[0.5em] text-muted-foreground font-bold mt-1">
                   Private Dining
                 </span>
               </div>
@@ -113,74 +129,88 @@ export function AppSidebar({ role }: { role: "chef" | "user" }) {
           </div>
         </SidebarHeader>
 
-        <SidebarContent className="bg-sidebar overflow-x-hidden overflow-y-auto [&::-webkit-scrollbar]:w-0">
-          
+        <SidebarContent className="bg-sidebar">
+          {/* User Profile Info */}
           {!isCollapsed && (
-            <div className="px-6 py-5 pb-2">
-              <p className="text-[8px] uppercase tracking-[0.3em] text-muted-foreground font-bold mb-1">Authenticated</p>
-              <h3 className="text-lg font-serif italic text-sidebar-foreground truncate">
+            <div className="px-6 pt-6 pb-2 whitespace-nowrap overflow-hidden">
+              <p className="text-[8px] uppercase tracking-[0.3em] text-primary font-bold mb-1">
+                {role === 'chef' ? 'Artisan' : 'Client'}
+              </p>
+              <h3 className="text-xl font-serif italic text-foreground truncate">
                 {profile?.display_name || "Guest User"}
               </h3>
             </div>
           )}
 
-          <SidebarGroup className="pt-2 px-0">
-            <SidebarMenu className="gap-1">
+          <SidebarGroup className={cn("pt-2", isCollapsed ? "px-0" : "px-3")}>
+            <SidebarMenu className="gap-2">
               
-              <div className={cn("flex items-center px-3 gap-1", isCollapsed ? "flex-col" : "flex-row")}>
-                <SidebarMenuItem className="flex-1 group-data-[collapsible=icon]:px-0">
+              {/* Profile & Theme Control Section */}
+              <div className={cn("flex gap-2", isCollapsed ? "flex-col" : "flex-row")}>
+                <SidebarMenuItem className="flex-1">
                   <SidebarMenuButton 
                     asChild 
                     tooltip="Edit Profile"
-                    className={cn(
-                      "h-9 transition-all duration-200 flex items-center rounded-none",
-                      isCollapsed 
-                        ? "justify-center w-10 bg-accent text-accent-foreground" 
-                        : "justify-start w-full px-3 bg-accent/50 text-sidebar-foreground hover:bg-accent border-l border-border"
-                    )}
+                    className="h-10 rounded-none bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all flex items-center justify-center group/profile"
                   >
-                    <Link href="/profile">
-                      <Pencil className="h-3.5 w-3.5 shrink-0" />
-                      {!isCollapsed && <span className="ml-3 text-[10px] uppercase tracking-[0.2em] font-bold">Edit Profile</span>}
+                    <Link href="/profile" className="flex items-center w-full justify-center">
+                      <Pencil className="h-4 w-4 shrink-0 text-muted-foreground group-hover/profile:text-accent-foreground transition-colors" />
+                      {!isCollapsed && <span className="ml-3 text-[10px] uppercase tracking-[0.2em] font-bold w-full">Profile</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-
-                <SidebarMenuItem className="group-data-[collapsible=icon]:px-0">
+                
+                <SidebarMenuItem>
                   <SidebarMenuButton 
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
                     tooltip="Toggle Theme"
-                    className="h-9 w-10 flex items-center justify-center transition-all duration-200 rounded-none bg-accent/50 text-sidebar-foreground hover:bg-accent"
+                    className={cn(
+                      "h-10 flex items-center justify-center rounded-none bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all group/theme",
+                      isCollapsed ? "w-full" : "w-12"
+                    )}
                   >
-                    {mounted && (theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />)}
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4 shrink-0 text-muted-foreground group-hover/theme:text-accent-foreground transition-colors" />
+                    ) : (
+                      <Moon className="h-4 w-4 shrink-0 text-muted-foreground group-hover/theme:text-accent-foreground transition-colors" />
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </div>
 
-              <SidebarSeparator className="my-2.5 bg-border mx-4 group-data-[collapsible=icon]:mx-2" />
+              <SidebarSeparator className="my-3 mx-2 opacity-50 bg-border" />
 
+              {/* Main Nav Items - ACTIVE Logic Applied */}
               {items.map((item) => {
                 const isActive = pathname === item.href
                 return (
-                  <SidebarMenuItem key={item.href} className="flex justify-center px-3 group-data-[collapsible=icon]:px-0">
+                  <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton 
                       asChild 
                       isActive={isActive}
                       tooltip={item.label}
                       className={cn(
-                        "h-10 transition-all duration-200 flex items-center rounded-none",
-                        isCollapsed ? "justify-center w-10" : "justify-start w-full px-3",
+                        "h-12 flex items-center rounded-none transition-all duration-200 group/nav",
                         isActive 
-                          ? "bg-primary text-primary-foreground border-l-2 border-primary-foreground group-data-[collapsible=icon]:border-l-0" 
-                          : "text-muted-foreground hover:bg-accent hover:text-sidebar-foreground"
+                          ? "bg-primary border-l-4 border-primary-foreground shadow-inner" 
+                          : "border-l-4 border-transparent hover:bg-muted text-muted-foreground",
+                        isCollapsed ? "justify-center px-0" : "justify-start px-4"
                       )}
                     >
-                      <Link href={item.href}>
-                        <item.icon className="h-4 w-4 shrink-0 transition-colors" />
+                      <Link href={item.href} className="flex items-center w-full">
+                        <item.icon className={cn(
+                          "h-5 w-5 shrink-0 transition-colors", 
+                          // ACTIVE: Uses 'foreground' (Lighter in Dark Mode, Darker in Light Mode)
+                          isActive ? "text-foreground" : "text-muted-foreground group-hover/nav:text-foreground"
+                        )} />
                         {!isCollapsed && (
-                          <span className="ml-3 text-[10px] uppercase tracking-[0.15em] font-bold">
-                            {item.label}
-                          </span>
+                            <span className={cn(
+                                "ml-4 text-[10px] uppercase tracking-[0.2em] font-bold truncate transition-colors",
+                                // ACTIVE: Same logic for text
+                                isActive ? "text-foreground" : "text-muted-foreground group-hover/nav:text-foreground"
+                            )}>
+                                {item.label}
+                            </span>
                         )}
                       </Link>
                     </SidebarMenuButton>
@@ -191,35 +221,37 @@ export function AppSidebar({ role }: { role: "chef" | "user" }) {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="pb-6 bg-sidebar border-t border-border shrink-0 px-0">
-          <SidebarMenu className="pt-4 gap-1">
-            <SidebarMenuItem className="flex justify-center px-3 group-data-[collapsible=icon]:px-0">
+        <SidebarFooter className={cn("pb-8 border-t border-border", isCollapsed ? "px-0" : "px-3")}>
+          <SidebarMenu className="pt-4 gap-2">
+            <SidebarMenuItem>
               <SidebarMenuButton 
                 asChild 
-                tooltip="Settings"
+                tooltip="Settings" 
                 className={cn(
-                  "h-9 transition-all duration-200 flex items-center rounded-none",
-                  isCollapsed ? "justify-center w-10" : "justify-start w-full px-3 text-muted-foreground hover:bg-accent hover:text-sidebar-foreground"
+                  "h-10 border-l-4 border-transparent hover:bg-muted text-muted-foreground hover:text-foreground transition-all group/settings",
+                  isCollapsed ? "justify-center px-0" : "justify-start px-4"
                 )}
               >
-                <Link href="/settings">
-                  <Settings className="h-4 w-4 shrink-0" />
-                  {!isCollapsed && <span className="ml-3 text-[10px] uppercase tracking-widest font-bold">Settings</span>}
+                <Link href="/settings" className="flex items-center w-full">
+                  <Settings className="h-4 w-4 shrink-0 text-muted-foreground group-hover/settings:text-foreground transition-colors" />
+                  {!isCollapsed && <span className="ml-4 text-[10px] uppercase tracking-widest font-bold">Settings</span>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             
-            <SidebarMenuItem className="flex justify-center px-3 group-data-[collapsible=icon]:px-0 cursor-pointer">
+            <SidebarMenuItem>
               <SidebarMenuButton 
                 onClick={handleLogout} 
                 tooltip="Sign Out"
                 className={cn(
-                  "h-9 transition-all duration-200 flex items-center rounded-none",
-                  isCollapsed ? "justify-center w-10" : "justify-start w-full px-3 text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+                  "h-10 border-l-4 border-transparent hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all cursor-pointer group/logout",
+                  isCollapsed ? "justify-center px-0" : "justify-start px-4"
                 )}
               >
-                <LogOut className="h-4 w-4 shrink-0" />
-                {!isCollapsed && <span className="ml-3 text-[10px] uppercase tracking-widest font-bold">Sign Out</span>}
+                <div className="flex items-center w-full">
+                  <LogOut className="h-4 w-4 shrink-0 text-muted-foreground group-hover/logout:text-destructive transition-colors" />
+                  {!isCollapsed && <span className="ml-6 text-[10px] uppercase tracking-widest font-bold">Sign Out</span>}
+                </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
