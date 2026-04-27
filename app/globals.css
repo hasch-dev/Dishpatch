@@ -4,48 +4,85 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Paper White */
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.12 0 0); /* Near Black */
+  /* --- The Marble & Gold Palette (Light) --- */
 
+  /* Background: Polished Marble (Off-white with a touch of warmth) */
+  --background: oklch(0.99 0.005 260);
+  --foreground: oklch(0.12 0 0); /* Pure professional black */
+
+  /* Primary: Brushed Gold (The signature accent) */
+  --primary: oklch(0.72 0.11 80);
+  --primary-foreground: oklch(0.15 0.02 260);
+
+  /* Secondary: Solid Foundation (Deep Charcoal/Black) */
+  --secondary: oklch(0.12 0 0);
+  --secondary-foreground: oklch(0.99 0.005 260);
+
+  /* UI Elements */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.12 0 0);
+  --card-foreground: oklch(0.18 0.03 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.03 260);
 
-  --primary: oklch(0.75 0.1 85); /* Brushed Gold */
-  --primary-foreground: oklch(0.12 0 0);
+  /* Muted & Accents */
+  --muted: oklch(0.95 0.01 260);
+  --muted-foreground: oklch(0.45 0.03 260);
+  --accent: oklch(0.72 0.11 80);
+  --accent-foreground: oklch(0.15 0.02 260);
 
-  --secondary: oklch(0.12 0 0); /* Solid Black */
-  --secondary-foreground: oklch(0.99 0 0);
+  /* System */
+  --border: oklch(0.9 0.01 260);
+  --input: oklch(0.9 0.01 260);
+  --ring: oklch(0.72 0.11 80);
 
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.45 0 0);
+  /* Radii: Sharp Studio Edges */
+  --radius: 0px;
 
-  --accent: oklch(0.75 0.1 85);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.9 0 0);
-  --ring: oklch(0.12 0 0);
-
-  --radius: 0px; /* Sharp studio edges */
+  /* Charting / Data (Luxury Variants) */
+  --chart-1: oklch(0.72 0.11 80); /* Gold */
+  --chart-2: oklch(0.28 0.05 260); /* Deep Slate */
+  --chart-3: oklch(0.55 0.1 160); /* Sage Accent */
+  --chart-4: oklch(0.6 0.12 35); /* Clay Accent */
+  --chart-5: oklch(0.85 0.05 200); /* Sky Accent */
 }
 
 .dark {
-  --background: oklch(0.1 0 0); /* Deep Black */
+  /* --- The Midnight & Bronze Palette (Dark) --- */
+
+  /* Background: Deep Obsidian */
+  --background: oklch(0.1 0 0);
   --foreground: oklch(0.95 0 0);
 
-  --card: oklch(0.12 0 0);
-  --card-foreground: oklch(0.95 0 0);
+  /* Primary: Muted Bronze/Gold */
+  --primary: oklch(0.78 0.09 85);
+  --primary-foreground: oklch(0.12 0.02 260);
 
-  --primary: oklch(0.82 0.08 90); /* Muted Gold */
-  --primary-foreground: oklch(0.1 0 0);
-
+  /* Secondary: Contrast White/Light Gold */
   --secondary: oklch(0.95 0 0);
   --secondary-foreground: oklch(0.1 0 0);
 
-  --muted: oklch(0.18 0 0);
-  --muted-foreground: oklch(0.6 0 0);
+  /* UI Elements */
+  --card: oklch(0.12 0 0);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(0.95 0 0);
 
+  /* Muted & Accents */
+  --muted: oklch(0.18 0 0);
+  --muted-foreground: oklch(0.6 0.02 260);
+  --accent: oklch(0.78 0.09 85);
+  --accent-foreground: oklch(0.12 0.02 260);
+
+  /* System */
   --border: oklch(0.2 0 0);
+  --input: oklch(0.2 0 0);
+  --ring: oklch(0.78 0.09 85);
+
+  /* Sidebar specifics */
   --sidebar: oklch(0.08 0 0);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.78 0.09 85);
+  --sidebar-border: oklch(0.24 0.02 260);
 }
 
 @theme inline {

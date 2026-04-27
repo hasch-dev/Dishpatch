@@ -1,28 +1,40 @@
-import type { Metadata } from 'next'
-import '@/app/globals.css'
-import { Inter, Montserrat } from 'next/font/google'
-import { ThemeProvider } from '@/components/theme-provider' // Adjust path if needed
+import type { Metadata } from "next";
+import "@/app/globals.css";
+import { Inter, Montserrat } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 
-const inter = Inter({ subsets: ['latin'] })
-const montserrat = Montserrat({ subsets: ['latin'] })
+// Inter for clean, legible UI/Body text
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter", // Create a CSS variable
+});
+
+// Montserrat for bold, high-fashion headlines
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  variable: "--font-montserrat", // Create a CSS variable
+});
 
 export const metadata: Metadata = {
-  title: 'Dishpatch',
-  description: 'Chef booking platform',
-}
+  title: "Dishpatch | Bespoke Culinary Logistics",
+  description:
+    "A modern culinary system for private chef experiences and consultancy.",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    // suppressHydrationWarning is essential for next-themes
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${montserrat.className}`}>
+      {/* Applying both variables to the body so they are available throughout the app */}
+      <body
+        className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}
+      >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light" // Defaulting to your "Polished Marble" theme
           enableSystem
           disableTransitionOnChange
         >
@@ -30,5 +42,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
