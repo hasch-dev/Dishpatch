@@ -231,5 +231,4 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-import "./requests.css"; // Make sure to add the tab styles below
 import Link from "next/link";
