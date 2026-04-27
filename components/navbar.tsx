@@ -6,8 +6,8 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import Logo from "./logo-dispatch";
-import LogoTextDark from './logo-text-dark';
-import LogoTextLight from './logo-text-light';
+import LogoTextDark from "./logo-text-dark";
+import LogoTextLight from "./logo-text-light";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -27,21 +27,22 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-md transition-all duration-300">
-      <nav className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="hidden md:grid grid-cols-12 h-16 items-center">
-          
+      <nav className="mx-auto max-w-7xl px-4 lg:px-6">
+        <div className="hidden md:grid grid-cols-12 h-16 items-center justify-between">
           {/* Column 1: Logo (Clean & Adaptive) */}
           <div className="col-span-3 flex items-center">
-            <Link href="/" className="flex items-center h-8 gap-3 group transition-opacity hover:opacity-80">
-              <Logo width={40} height={40} />
+            <Link
+              href="/"
+              className="flex items-center justify-center mx-auto h-8 gap-3 group transition-opacity hover:opacity-80"
+            >
+              <Logo width={36} height={36} />
               <span className="text-md gap-2 font-bold uppercase flex items-center justify-center tracking-tighter text-foreground italic">
-                {mounted && (
-                  theme === "dark" ? (
-                    <LogoTextLight /> 
+                {mounted &&
+                  (theme === "dark" ? (
+                    <LogoTextLight width={128} />
                   ) : (
-                    <LogoTextDark />
-                  )
-                )}
+                    <LogoTextDark width={128} className="mb-1" />
+                  ))}
                 PH
               </span>
             </Link>
@@ -63,7 +64,6 @@ export default function Navbar() {
 
           {/* Column 3: Actions (Simplified) */}
           <div className="col-span-3 flex justify-end items-center gap-8">
-            
             {/* Stabilized Theme Slider */}
             <div className="flex items-center">
               <button

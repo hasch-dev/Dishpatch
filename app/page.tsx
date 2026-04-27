@@ -55,7 +55,7 @@ export default function LandingPage() {
 
       <main>
         {/* HERO: Redesigned Buttons & Clean Imagery */}
-        <section className="relative min-h-[95vh] flex items-center pt-20">
+        <section className="relative min-h-[95vh] flex items-center pt-12">
           <div className="container mx-auto px-8 grid lg:grid-cols-12 gap-0 items-center">
             <div className="lg:col-span-6 z-20 bg-background/80 backdrop-blur-md lg:bg-transparent py-12 lg:py-0">
               <Reveal delay={0.1}>
@@ -111,28 +111,31 @@ export default function LandingPage() {
             {/* HERO IMAGE: Clean, High-Def Content */}
             <div className="lg:col-span-6 relative h-[60vh] lg:h-[85vh] w-full mt-12 lg:mt-0">
               <div className="absolute inset-0 z-0 bg-primary/5 translate-x-8 translate-y-8" />
+
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 1.2, ease: "easeOut" }}
-                className="relative h-full w-full overflow-hidden shadow-2xl border border-border"
+                className="relative h-full w-full overflow-hidden shadow-2xl border border-border group"
               >
-                {/* Replaced with a clean, vibrant food focus image */}
+                {/* FILTER LOGIC:
+                    Light Mode: Higher brightness to pop against the white UI.
+                    Dark Mode: Lower brightness and slightly desaturated to let the gold/white text lead.
+                */}
                 <img
                   src="https://images.unsplash.com/photo-1551218808-94e220e084d2?q=80&w=2400"
-                  className="w-full h-full object-cover saturate-[1.1] contrast-[1.05] transition-transform duration-[10s] hover:scale-110"
+                  className="w-full h-full object-cover transition-all duration-700 
+                            brightness-60 contrast-90 saturate-90
+                            dark:brightness-[0.4] dark:contrast-[1.1] dark:saturate-[0.8]
+                            group-hover:scale-105 group-hover:brightness-100 dark:group-hover:brightness-[0.5]"
                   alt="Elite Culinary Execution"
                 />
-              </motion.div>
 
-              <div className="absolute bottom-12 -left-12 hidden lg:flex bg-background border border-border p-6 shadow-xl flex-col gap-1">
-                <span className="text-[9px] font-bold uppercase tracking-widest opacity-40">
-                  Status
-                </span>
-                <span className="text-xs font-black uppercase tracking-tighter italic">
-                  Ready for Deployment
-                </span>
-              </div>
+                {/* THEME-AWARE GRADIENT OVERLAY:
+                    This ensures the text is always legible even if the image is busy.
+                */}
+                <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent opacity-80 lg:opacity-40" />
+              </motion.div>
             </div>
           </div>
         </section>
