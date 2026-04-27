@@ -1,19 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, ArrowRight, ChefHat, Sparkles, Calendar as CalendarIcon, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ChefHat, Sparkles, Calendar as CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format, addDays, addMonths, isBefore, startOfToday, isSameDay, parseISO } from "date-fns"
 import { motion, AnimatePresence } from 'framer-motion'
 
-export default function NewBookingPage() {
+// This component handles the actual logic
+function NewBookingContent() {
   const router = useRouter()
   const supabase = createClient()
   const searchParams = useSearchParams()
@@ -94,7 +94,7 @@ export default function NewBookingPage() {
 
   if (!mounted) return null
 
-  // Selection Screen (Path Choice)
+  // Path Choice Selection Screen
   if (!bookingType) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 transition-colors duration-500">
@@ -160,18 +160,6 @@ export default function NewBookingPage() {
                             selected={eventDate}
                             onSelect={setEventDate}
                             disabled={(date) => isBefore(date, today) || date > maxBookingDate || isDateBlockedByBuffer(date)}
-                            modifiers={{ 
-                                booked: (date) => assignedDates.some(ad => isSameDay(date, ad)),
-                                buffer: (date) => isDateBlockedByBuffer(date) && !assignedDates.some(ad => isSameDay(date, ad)),
-                                pending: pendingDates,
-                                available: (date) => !isBefore(date, today) && date <= maxBookingDate && !isDateBlockedByBuffer(date) && !pendingDates.some(pd => isSameDay(date, pd))
-                            }}
-                            modifiersClassNames={{
-                                booked: "booked-date-style",
-                                buffer: "buffer-date-style",
-                                pending: "pending-date-style",
-                                available: "available-date-style"
-                            }}
                           />
                         </PopoverContent>
                       </Popover>
@@ -203,6 +191,7 @@ export default function NewBookingPage() {
                 </div>
               )}
             </div>
+            {error && <p className="text-red-500 text-xs font-mono">{error}</p>}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -220,5 +209,18 @@ export default function NewBookingPage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+// The main export wraps everything in Suspense to satisfy the Next.js build requirements
+export default function NewBookingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-[10px] font-mono uppercase tracking-[0.5em] animate-pulse">Initialising Studio...</p>
+      </div>
+    }>
+      <NewBookingContent />
+    </Suspense>
   )
 }
