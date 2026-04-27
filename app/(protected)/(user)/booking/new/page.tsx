@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 import { format, addDays, addMonths, isBefore, startOfToday, isSameDay, parseISO } from "date-fns"
 import { motion, AnimatePresence } from 'framer-motion'
 
-// This component handles the actual logic
+// 1. We move ALL your logic into this "Content" component
 function NewBookingContent() {
   const router = useRouter()
   const supabase = createClient()
@@ -94,7 +94,7 @@ function NewBookingContent() {
 
   if (!mounted) return null
 
-  // Path Choice Selection Screen
+  // Selection Screen (Path Choice)
   if (!bookingType) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 transition-colors duration-500">
@@ -212,7 +212,7 @@ function NewBookingContent() {
   )
 }
 
-// The main export wraps everything in Suspense to satisfy the Next.js build requirements
+// 2. We export this wrapper as the DEFAULT, which uses Suspense to satisfy Vercel
 export default function NewBookingPage() {
   return (
     <Suspense fallback={
