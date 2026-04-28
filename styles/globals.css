@@ -1,0 +1,49 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* 1. Tell Tailwind v4 to recognize the .dark class on the root */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* ... keep your existing font and color mappings ... */
+  --font-sans: 'Geist', 'Geist Fallback';
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  
+  /* This ensures Tailwind utilities (like bg-background) link to your variables */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-sidebar: var(--sidebar);
+  /* ... (rest of your mappings) ... */
+}
+
+/* 2. Base Variable Definitions */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  /* ... rest of your light mode variables ... */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+}
+
+/* 3. Dark Mode Overrides */
+/* Note: next-themes adds .dark to the <html> tag by default */
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  /* ... rest of your dark mode variables ... */
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+}
+
+@layer base {
+  *, ::after, ::before {
+    border-color: var(--border);
+  }
+  body {
+    /* This is CRITICAL: It binds the body to the variables defined above */
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
