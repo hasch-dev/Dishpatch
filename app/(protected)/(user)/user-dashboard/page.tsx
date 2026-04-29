@@ -16,7 +16,9 @@ import {
   Plus, 
   ArrowUpRight, 
   AlertCircle,
-  X 
+  X,
+  CheckCircle2, // Added for notification
+  ArrowRight    // Added for notification
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -39,6 +41,10 @@ export default function DashboardPage() {
   const [selectedBooking, setSelectedBooking] = useState<any | null>(null)
   const [modal, setModal] = useState<ModalConfig>(null)
   
+  // --- NEW STATES FOR NOTIFICATIONS ---
+  const [notification, setNotification] = useState<any | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  
   const router = useRouter()
   const supabase = createClient()
 
@@ -52,6 +58,8 @@ export default function DashboardPage() {
           return
         }
         
+        setUserId(user.id) // Save ID for realtime listener
+
         const { data, error: fetchError } = await supabase
           .from('bookings')
           .select('*')
@@ -68,6 +76,41 @@ export default function DashboardPage() {
     }
     loadDashboard()
   }, [router, supabase])
+
+  // --- REALTIME LISTENER FOR ACCEPTED BOOKINGS ---
+  useEffect(() => {
+    if (!userId) return
+
+    const channel = supabase.channel(`public:bookings`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'bookings', filter: `client_id=eq.${userId}` }, // Use user_id or client_id based on your schema
+        async (payload) => {
+          if (payload.new.status === 'assigned' && payload.old.status !== 'assigned') {
+            
+            const { data: chefData } = await supabase.from('profiles').select('display_name').eq('id', payload.new.chef_id).single()
+            const { data: conv } = await supabase.from('conversations')
+              .select('id').eq('chef_id', payload.new.chef_id).eq('client_id', userId).single()
+
+            setNotification({
+              chefName: chefData?.display_name || "An Artisan",
+              bookingTitle: payload.new.title,
+              chatId: conv?.id
+            })
+            
+            // Auto-hide toast after 8 seconds
+            setTimeout(() => setNotification(null), 8000)
+            
+            // Refresh dashboard data
+            const { data } = await supabase.from('bookings').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+            if (data) setUserBookings(data)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [userId, supabase])
 
   // --- ACTION HANDLERS ---
   const handleCancelAttempt = (e: React.MouseEvent, booking: any) => {
@@ -113,7 +156,7 @@ export default function DashboardPage() {
     try { return d ? format(parseISO(d), 'MMM dd, yyyy') : 'TBD' } catch { return 'TBD' }
   }
 
-  // --- TYPED ANIMATION VARIANTS (Fixes "variants" error) ---
+  // --- TYPED ANIMATION VARIANTS ---
   const cardVariants: Variants = {
     initial: { opacity: 0, y: 12 },
     animate: { 
@@ -127,7 +170,7 @@ export default function DashboardPage() {
     exit: { opacity: 0, scale: 0.98, transition: { duration: 0.2 } },
     hover: {
       y: -6,
-      borderColor: "var(--primary)", // Simplified for stability
+      borderColor: "var(--primary)",
       boxShadow: "0 20px 40px -12px rgba(0,0,0,0.15)",
       transition: { type: "spring", stiffness: 300, damping: 25 }
     }
@@ -140,12 +183,43 @@ export default function DashboardPage() {
   )
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/10">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/10 relative">
+      
+      {/* --- NOTIFICATION TOAST OVERLAY --- */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] bg-card border border-border shadow-2xl p-6 w-[400px]"
+          >
+            <div className="flex items-start gap-4">
+              <div className="h-10 w-10 bg-primary/10 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-serif italic font-bold text-lg leading-tight mb-1">Commission Accepted</h4>
+                <p className="text-xs text-muted-foreground">
+                  <strong className="text-foreground">{notification.chefName}</strong> has accepted the directive for <strong className="text-foreground">{notification.bookingTitle}</strong>.
+                </p>
+                {notification.chatId && (
+                  <Button onClick={() => router.push(`/messages/${notification.chatId}`)} className="w-full mt-4 bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px] h-10 rounded-none">
+                    Enter the Suite <ArrowRight className="ml-2 h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+              <button onClick={() => setNotification(null)}><X className="h-4 w-4 text-muted-foreground hover:text-foreground" /></button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* NAV */}
       <nav className="h-16 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-50 border-b border-border/40">
         <div className="flex items-center gap-3 cursor-pointer group" onClick={() => router.push('/')}>
           <ChefHat className="h-4 w-4 text-primary transition-transform group-hover:rotate-12" />
-          <span className="font-serif text-xs tracking-widest font-bold uppercase tracking-[0.2em]">Dishpatch</span>
+          <span className="font-serif text-xs font-bold uppercase tracking-[0.2em]">Dishpatch</span>
         </div>
         <Button onClick={() => router.push('/booking/new')} size="sm" className="rounded-none h-9 px-6 text-[9px] uppercase tracking-widest font-bold">
           <Plus className="mr-2 h-3 w-3" /> Initiate Commission
@@ -250,7 +324,6 @@ export default function DashboardPage() {
       {/* --- DETAIL SHEET --- */}
       <Sheet open={!!selectedBooking} onOpenChange={(o) => !o && setSelectedBooking(null)}>
         <SheetContent className="w-full sm:max-w-md bg-background border-l border-border/40 p-0 flex flex-col">
-          {/* ACCESSIBILITY FIX: Visually Hidden Header */}
           <SheetHeader className="sr-only">
             <SheetTitle>Commission Dossier: {selectedBooking?.title || 'Details'}</SheetTitle>
             <SheetDescription>Archive records and creative directives for this engagement.</SheetDescription>

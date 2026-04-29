@@ -34,16 +34,18 @@ export default function Navbar() {
           <div className="col-span-3 flex items-center">
             <Link href="/" className="flex items-center h-8 gap-3 group transition-opacity hover:opacity-80">
               <Logo width={40} height={40} />
-              <span className="text-md gap-2 font-bold uppercase flex items-center justify-center tracking-tighter text-foreground italic">
-                {mounted && (
-                  theme === "dark" ? (
-                    <LogoTextLight /> 
-                  ) : (
-                    <LogoTextDark />
-                  )
-                )}
-                PH
-              </span>
+              <div className="flex flex-row items-center justify-center">
+                <span className="text-md gap-2 font-bold uppercase flex items-center justify-center tracking-tighter text-foreground italic">
+                  {mounted && (
+                    theme === "dark" ? (
+                      <LogoTextLight /> 
+                    ) : (
+                        <LogoTextDark className="mb-1"/>
+                    )
+                  )}
+                </span>
+                <p className="px-1">PH</p>
+              </div>
             </Link>
           </div>
 

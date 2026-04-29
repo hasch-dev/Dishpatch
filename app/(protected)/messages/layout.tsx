@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import { MessageSquare, Search } from "lucide-react"
-import { AppSidebar } from "@/components/app-sidebar" // Adjust path if needed
+import { AppSidebar } from "@/components/app-sidebar" 
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 
 export default async function MessagesLayout({ children }: { children: React.ReactNode }) {
@@ -9,6 +9,7 @@ export default async function MessagesLayout({ children }: { children: React.Rea
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  // Fetch actual 1-on-1 conversations
   const { data: conversations } = await supabase
     .from('conversations')
     .select(`
@@ -23,12 +24,12 @@ export default async function MessagesLayout({ children }: { children: React.Rea
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden bg-background">
-        {/* MAIN NAVIGATION: The App Sidebar (Far Left) */}
+        {/* MAIN NAVIGATION */}
         <AppSidebar />
 
         <SidebarInset className="flex flex-1 overflow-hidden">
           <div className="flex w-full h-full">
-            {/* COLUMN 1: Inbox Sidebar (The Message List) */}
+            {/* COLUMN 1: Inbox Sidebar */}
             <aside className="w-80 border-r border-border flex flex-col bg-card/30 shrink-0">
               <div className="p-6 border-b border-border bg-background/50">
                 <h1 className="font-serif italic font-bold text-2xl flex items-center gap-2 mb-4">
@@ -45,6 +46,27 @@ export default async function MessagesLayout({ children }: { children: React.Rea
               </div>
               
               <div className="flex-1 overflow-y-auto">
+                {/* --- HARDCODED SUPPORT LINE --- */}
+                <Link href={`/messages/support`}>
+                  <div className="p-4 border-b border-border/40 hover:bg-muted/50 transition-all cursor-pointer group bg-primary/5">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-serif italic text-xl shadow-lg border border-primary/20">
+                        D
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm truncate uppercase tracking-tighter text-primary">
+                          Concierge
+                        </p>
+                        <p className="text-[11px] text-primary/70 truncate italic opacity-80 group-hover:opacity-100 transition-opacity">
+                          Official Support Line
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+                {/* --- END SUPPORT LINE --- */}
+
+                {/* DYNAMIC CONVERSATIONS */}
                 {conversations && conversations.length > 0 ? (
                   conversations.map((chat: any) => {
                     const isChef = chat.chef_id === user.id
@@ -72,13 +94,13 @@ export default async function MessagesLayout({ children }: { children: React.Rea
                   })
                 ) : (
                   <div className="p-8 text-center text-muted-foreground italic text-sm">
-                    No chats yet.
+                    No active bookings.
                   </div>
                 )}
               </div>
             </aside>
 
-            {/* COLUMN 2 & 3: Chat Room & Details Panel */}
+            {/* Chat Room Window */}
             <main className="flex-1 flex overflow-hidden">
               {children}
             </main>

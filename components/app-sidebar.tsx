@@ -5,11 +5,12 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { createClient } from "@/lib/supabase/client"
+import { motion, AnimatePresence } from "framer-motion"
 import { 
   LayoutDashboard, ClipboardList, MessageSquare, Calendar, 
   CreditCard, Settings, Utensils, Users, 
-  LogOut, Pencil, ChevronLeft, ChefHat,
-  Sun, Moon 
+  LogOut, Pencil, ChevronLeft,
+  Sun, Moon, X
 } from "lucide-react"
 
 import {
@@ -25,8 +26,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch" // Ensure you have this shadcn component
+import { Switch } from "@/components/ui/switch" 
 import { cn } from "@/lib/utils"
+import LogoTextLight from "./logo-text-light"
+import LogoTextDark from "./logo-text-dark"
+import Logo from '@/components/logo-dispatch'
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -36,12 +40,17 @@ export function AppSidebar() {
   
   const [profile, setProfile] = React.useState<any>(null)
   const [role, setRole] = React.useState<"chef" | "user" | null>(null)
+  const [userId, setUserId] = React.useState<string | null>(null)
   const [mounted, setMounted] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(true)
+  
+  const [unreadMsg, setUnreadMsg] = React.useState(false)
+  const [messageToast, setMessageToast] = React.useState<{senderName: string, text: string, chatId: string} | null>(null)
   
   const { toggleSidebar, state, isMobile } = useSidebar()
   const isCollapsed = state === "collapsed"
 
+  // Load User Identity
   React.useEffect(() => {
     setMounted(true)
     const loadIdentity = async () => {
@@ -50,6 +59,7 @@ export function AppSidebar() {
         setIsLoading(false)
         return
       }
+      setUserId(user.id)
 
       const { data } = await supabase
         .from("profiles")
@@ -65,6 +75,72 @@ export function AppSidebar() {
     }
     loadIdentity()
   }, [supabase])
+
+  // --- FIXED GLOBAL MESSAGE LISTENER ---
+  React.useEffect(() => {
+    if (!userId) return
+
+    // Define the channel outside the async function so the cleanup has access to it immediately
+    const channel = supabase.channel(`public:global_messages`)
+
+    const setupListener = async () => {
+      // 1. Get all conversations this user is a part of
+      const { data: convos } = await supabase
+        .from("conversations")
+        .select("id")
+        .or(`chef_id.eq.${userId},client_id.eq.${userId}`)
+      
+      const convoIds = convos?.map(c => c.id) || []
+
+      // 2. Attach listeners BEFORE calling .subscribe()
+      channel
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'messages' 
+        }, async (payload) => {
+          const newMsg = payload.new
+          
+          // Logic: message is for user's chat, not sent by user, and user is not on that chat page
+          if (
+            convoIds.includes(newMsg.conversation_id) && 
+            newMsg.sender_id !== userId &&
+            !pathname.includes(newMsg.conversation_id)
+          ) {
+            setUnreadMsg(true)
+            
+            const { data: senderProfile } = await supabase
+              .from('profiles')
+              .select('display_name')
+              .eq('id', newMsg.sender_id)
+              .single()
+            
+            setMessageToast({
+              senderName: senderProfile?.display_name || "Someone",
+              text: newMsg.content,
+              chatId: newMsg.conversation_id
+            })
+
+            setTimeout(() => setMessageToast(null), 5000)
+          }
+        })
+        .subscribe()
+    }
+
+    setupListener()
+
+    // Proper cleanup to prevent "cannot add callbacks" error on re-render
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId, supabase, pathname])
+
+  // Clear unread badge when user navigates to messages
+  React.useEffect(() => {
+    if (pathname.includes('/messages')) {
+      setUnreadMsg(false)
+    }
+  }, [pathname])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -89,6 +165,35 @@ export function AppSidebar() {
 
   return (
     <>
+      <AnimatePresence>
+        {messageToast && (
+          <motion.div 
+            initial={{ opacity: 0, x: 50, scale: 0.9 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 50, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-[200] bg-card border border-border shadow-2xl p-5 w-[350px] cursor-pointer"
+            onClick={() => {
+              router.push(`/messages/${messageToast.chatId}`)
+              setMessageToast(null)
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-primary mb-1">New Message from</p>
+                <h4 className="font-serif italic text-lg leading-tight truncate">{messageToast.senderName}</h4>
+                <p className="text-xs text-muted-foreground mt-2 truncate font-light">"{messageToast.text}"</p>
+              </div>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setMessageToast(null); }} 
+                className="hover:bg-muted p-1 rounded-sm transition-colors"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {!isMobile && (
         <Button
           variant="secondary"
@@ -108,25 +213,30 @@ export function AppSidebar() {
       )}
 
       <Sidebar collapsible="icon" className="border-r border-border bg-sidebar shadow-xl overflow-hidden">
-        {/* Header */}
-        <SidebarHeader className="h-20 flex flex-col justify-center bg-sidebar border-b border-border shrink-0 p-0">
+        <SidebarHeader className="h-16 flex flex-col justify-center bg-sidebar border-b border-border shrink-0 p-0">
           <div className={cn(
             "flex w-full items-center transition-all duration-300 px-4",
             isCollapsed ? "justify-center px-0" : "justify-start"
           )}>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-primary text-primary-foreground border border-border">
-              <ChefHat className="h-6 w-6" />
-            </div>
-            {!isCollapsed && (
-              <div className="ml-4 flex flex-col items-start overflow-hidden whitespace-nowrap animate-in fade-in duration-300">
-                <span className="font-serif text-[16px] tracking-widest uppercase text-foreground leading-tight">
-                    Dish<span className="italic text-primary">patch</span>
-                </span>
-                <span className="text-[7px] uppercase tracking-[0.5em] text-muted-foreground font-bold">
-                  Private Dining
-                </span>
-              </div>
-            )}
+            <Link 
+              href="/" 
+              className={cn(
+                "flex items-center h-8 group transition-opacity hover:opacity-80",
+                isCollapsed && "justify-center w-full"
+              )}
+            >
+              <Logo width={42} height={42} />
+              {!isCollapsed && (
+                <div className="flex flex-row items-center justify-center overflow-hidden animate-in fade-in duration-300">
+                  <span className="text-md font-bold uppercase flex items-center justify-center tracking-tighter text-foreground italic">
+                    {mounted && (
+                      theme === "dark" ? <LogoTextLight /> : <LogoTextDark className="mb-1"/>
+                    )}
+                  </span>
+                  <p className="px-1">PH</p>
+                </div>
+              )}
+            </Link>
           </div>
         </SidebarHeader>
 
@@ -144,8 +254,6 @@ export function AppSidebar() {
 
           <SidebarGroup className={cn("pt-2", isCollapsed ? "px-0" : "px-3")}>
             <SidebarMenu className="gap-2">
-              
-              {/* Profile & Theme Control */}
               <div className={cn("flex items-center gap-2", isCollapsed ? "flex-col px-0" : "flex-row px-1")}>
                 <SidebarMenuItem className="flex-1 w-full">
                   <SidebarMenuButton 
@@ -163,11 +271,11 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 
-                <SidebarMenuItem className={isCollapsed ? "w-full" : "w-full"}>
+                <SidebarMenuItem className="w-full">
                     {isCollapsed ? (
                         <SidebarMenuButton 
                             onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
-                            className="h-10 w-full mx-auto flex items-center justify-center rounded-none bg-muted/30 group/theme"
+                            className="h-10 w-full mx-auto flex items-center justify-center rounded-none bg-muted/30"
                         >
                             {theme === "dark" ? <Sun className="h-4 w-4 text-muted-foreground" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
                         </SidebarMenuButton>
@@ -187,9 +295,10 @@ export function AppSidebar() {
 
               <SidebarSeparator className="my-2 mx-2 opacity-50" />
 
-              {/* Navigation Items */}
               {items.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname.startsWith(item.href)
+                const isMessageNav = item.href === '/messages'
+
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton 
@@ -204,19 +313,30 @@ export function AppSidebar() {
                         isCollapsed ? "justify-center px-0 mx-1.5" : "justify-start px-4"
                       )}
                     >
-                      <Link href={item.href} className="flex items-center w-full">
-                        <item.icon className={cn(
-                          "h-5 w-5 shrink-0 transition-colors mx-auto", // mx-auto ensures centering in collapsed state
-                          !isCollapsed && "mx-0",
-                          isActive ? "text-primary" : "text-muted-foreground group-hover/nav:text-foreground"
-                        )} />
+                      <Link href={item.href} className="flex items-center w-full relative">
+                        <div className={cn("relative mx-auto", !isCollapsed && "mx-0")}>
+                          <item.icon className={cn(
+                            "h-5 w-5 shrink-0 transition-colors",
+                            isActive ? "text-primary" : "text-muted-foreground group-hover/nav:text-foreground"
+                          )} />
+                          {isMessageNav && unreadMsg && (
+                            <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 shadow-sm ring-2 ring-sidebar" />
+                          )}
+                        </div>
+
                         {!isCollapsed && (
                             <span className={cn(
-                                "ml-4 text-[10px] uppercase tracking-[0.2em] font-bold truncate",
+                                "ml-4 text-[10px] uppercase tracking-[0.2em] font-bold truncate flex-1",
                                 isActive ? "text-foreground" : "text-muted-foreground group-hover/nav:text-foreground"
                             )}>
                                 {item.label}
                             </span>
+                        )}
+                        
+                        {!isCollapsed && isMessageNav && unreadMsg && (
+                          <span className="bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest">
+                            New
+                          </span>
                         )}
                       </Link>
                     </SidebarMenuButton>

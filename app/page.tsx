@@ -69,12 +69,12 @@ export default function LandingPage() {
 
               <Reveal delay={0.2}>
                 <h1 className="text-6xl md:text-8xl lg:text-[9rem] font-black leading-[0.8] tracking-tighter uppercase mb-10">
-                  Experience <br />
+                  Luxury <br />
                   <span className="text-primary italic font-medium lowercase">
-                    the
+                    on
                   </span>{" "}
                   <br />
-                  Atmosphere.
+                  Demand.
                 </h1>
               </Reveal>
 
@@ -125,14 +125,6 @@ export default function LandingPage() {
                 />
               </motion.div>
 
-              <div className="absolute bottom-12 -left-12 hidden lg:flex bg-background border border-border p-6 shadow-xl flex-col gap-1">
-                <span className="text-[9px] font-bold uppercase tracking-widest opacity-40">
-                  Status
-                </span>
-                <span className="text-xs font-black uppercase tracking-tighter italic">
-                  Ready for Deployment
-                </span>
-              </div>
             </div>
           </div>
         </section>
@@ -147,7 +139,7 @@ export default function LandingPage() {
               <div className="lg:col-span-3 space-y-12 pr-0 lg:pr-12">
                 <Reveal>
                   <h2 className="text-[10px] font-bold uppercase tracking-[0.6em] text-primary mb-8">
-                    The Concept
+                    About Us
                   </h2>
                   <p className="text-2xl md:text-5xl font-light leading-[1.1] text-foreground italic">
                     DISH-PATCH is a modern culinary system built on three core
@@ -188,10 +180,10 @@ export default function LandingPage() {
             <div className="mb-20 flex justify-between items-end">
               <div>
                 <span className="text-primary font-bold text-[10px] uppercase tracking-[0.5em]">
-                  The Collective
+                  Testimonials
                 </span>
                 <h2 className="text-5xl font-black uppercase tracking-tighter mt-4">
-                  Visual Proof.
+                  Experience on a Plate.
                 </h2>
               </div>
             </div>
@@ -240,7 +232,7 @@ export default function LandingPage() {
                 {
                   icon: <Eye className="w-5 h-5" />,
                   title: "Preview",
-                  desc: "Browse artisan portfolios and testimonials as we curate your bespoke menu.",
+                  desc: "Browse artisan portfolios and testimonials as we curate your menu.",
                 },
                 {
                   icon: <UtensilsCrossed className="w-5 h-5" />,

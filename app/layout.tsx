@@ -3,22 +3,23 @@ import "@/app/globals.css";
 import { Inter, Montserrat } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 
-// Inter for clean, legible UI/Body text
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter", // Create a CSS variable
+  variable: "--font-inter",
 });
 
-// Montserrat for bold, high-fashion headlines
 const montserrat = Montserrat({
   subsets: ["latin"],
-  variable: "--font-montserrat", // Create a CSS variable
+  variable: "--font-montserrat",
 });
 
 export const metadata: Metadata = {
-  title: "Dishpatch | Bespoke Culinary Logistics",
-  description:
-    "A modern culinary system for private chef experiences and consultancy.",
+  title: "Dishpatch",
+  description: "A modern culinary system for private chef experiences and consultancy.",
+  // THIS HANDLES THE TAB LOGO
+  icons: {
+    icon: "/images/dishpatchlogo.png",
+  },
 };
 
 export default function RootLayout({
@@ -28,17 +29,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      {/* Applying both variables to the body so they are available throughout the app */}
-      <body
-        className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}
-      >
+      <body className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light" // Defaulting to your "Polished Marble" theme
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <main>
+            {children}
+          </main>
         </ThemeProvider>
       </body>
     </html>
