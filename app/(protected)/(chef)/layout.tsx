@@ -7,13 +7,10 @@ export default function ChefLayout({
   children: React.ReactNode
 }) {
   return (
-
       <div className="flex min-h-svh w-full bg-background">
-        {/* We no longer need to pass role="chef" here */}
-   
-        <main className="flex-1 w-full overflow-y-auto">
+        <section className="flex-1 w-full overflow-y-auto">
           {children}
-        </main>
+        </section>
       </div>
   )
 }

@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     "https://mgp9yj-3000.csb.app/",
     "https://sx2vwk-3000.csb.app/",
   ],
+  experimental: {
+    turbopackFileSystemCacheForDev: false,
+  },
 };
 
 export default nextConfig;

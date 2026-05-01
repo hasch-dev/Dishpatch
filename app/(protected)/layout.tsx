@@ -27,8 +27,6 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}>
         <SidebarProvider>
           {/* Main Container */}
           <div className="flex min-h-screen w-full">
@@ -39,7 +37,5 @@ export default function RootLayout({
           </div>
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </SidebarProvider>
-      </body>
-    </html>
   )
 }

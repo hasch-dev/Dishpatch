@@ -9,11 +9,14 @@ import {
   Clock, CheckCircle2, ArrowRight 
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function ChefDashboardPage() {
   const [data, setData] = useState<any>({ proposals: [], deals: [], profile: null });
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompleting, setIsCompleting] = useState<string | null>(null);
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -34,11 +37,30 @@ export default function ChefDashboardPage() {
       setIsLoading(false);
     };
     loadDashboard();
-  }, []);
+  }, [supabase]);
 
+  // Note: You might want to update this calculation later to pull directly 
+  // from profile.total_earned based on our new SQL structure.
   const earnings = data.deals.reduce((sum: number, d: any) => sum + (d.deposit_paid ? d.deposit_amount : 0), 0);
   const pendingCount = data.proposals.filter((p: any) => p.status === "pending").length;
   const activeCount = data.deals.filter((d: any) => !d.final_paid).length;
+
+  const handleCompleteDeal = async (bookingId: string) => {
+    if (!confirm("Confirming completion will finalize the transaction and notify the client. Proceed?")) return;
+    
+    setIsCompleting(bookingId);
+    const res = await fetch('/api/bookings/complete', {
+      method: 'POST',
+      body: JSON.stringify({ bookingId }),
+    });
+
+    if (res.ok) {
+      window.location.reload(); 
+    } else {
+      alert("There was an error completing the commission.");
+      setIsCompleting(null);
+    }
+  };
 
   if (isLoading) return <div className="p-10 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent" /></div>;
 
@@ -101,7 +123,7 @@ export default function ChefDashboardPage() {
         {/* RECENT ACTIVITY */}
         <Card className="lg:col-span-2 border-border bg-card/50 backdrop-blur">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="font-serif italic text-xl">Next Scheduled Sessions</CardTitle>
+            <CardTitle className="font-serif italic text-xl">Active Commissions</CardTitle>
             <Link href="/requests">
               <Button variant="ghost" size="sm" className="text-xs uppercase tracking-widest text-primary">
                 View All <ArrowRight className="ml-2 h-3 w-3" />
@@ -121,7 +143,26 @@ export default function ChefDashboardPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] bg-muted px-2 py-1 rounded font-bold uppercase tracking-widest text-muted-foreground">Confirmed</span>
+                  {deal.booking.payment_status === 'paid' && !deal.booking.chef_confirmed_completion ? (
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleCompleteDeal(deal.booking.id)}
+                      disabled={isCompleting === deal.booking.id}
+                      className="h-7 text-[9px] uppercase tracking-widest rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {isCompleting === deal.booking.id ? (
+                        'Processing...'
+                      ) : (
+                        <>
+                          <CheckCircle2 className="mr-1.5 h-3 w-3" /> Finish & Collect
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <span className="text-[10px] bg-muted px-2 py-1 rounded font-bold uppercase tracking-widest text-muted-foreground">
+                      {deal.booking.chef_confirmed_completion ? 'Completed' : 'Awaiting Details'}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
