@@ -50,12 +50,12 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
+    <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground" id="system">
       <Navbar />
 
       <main>
         {/* HERO: Redesigned Buttons & Clean Imagery */}
-        <section className="relative min-h-[95vh] flex items-center pt-20">
+        <section className="relative min-h-[95vh] flex items-center pt-12">
           <div className="container mx-auto px-8 grid lg:grid-cols-12 gap-0 items-center">
             <div className="lg:col-span-6 z-20 bg-background/80 backdrop-blur-md lg:bg-transparent py-12 lg:py-0">
               <Reveal delay={0.1}>
@@ -114,7 +114,7 @@ export default function LandingPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 1.2, ease: "easeOut" }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="relative h-full w-full overflow-hidden shadow-2xl border border-border"
               >
                 {/* Replaced with a clean, vibrant food focus image */}
@@ -150,7 +150,7 @@ export default function LandingPage() {
               </div>
               <div className="lg:col-span-2 space-y-8 bg-background p-12 border border-border shadow-2xl relative">
                 <div className="absolute -top-4 -left-4 w-12 h-12 border-t border-l border-primary/40" />
-                <div className="opacity-40 space-y-4">
+                <div className="opacity-60 space-y-4">
                   <p className="text-[10px] font-bold uppercase tracking-widest">
                     We are not a restaurant.
                   </p>
@@ -158,7 +158,7 @@ export default function LandingPage() {
                     We are not a traditional catering service.
                   </p>
                 </div>
-                <hr className="border-primary/20" />
+                <hr className="border-primary/30" />
                 <p className="text-base font-light text-muted-foreground leading-relaxed">
                   We are a culinary system designed to deliver great food in
                   three ways:
@@ -261,8 +261,8 @@ export default function LandingPage() {
 
         {/* READY TO JOIN: Final CTA */}
         <section
-          id="ready"
-          className="py-48 bg-background relative flex items-center justify-center overflow-hidden"
+          id="gift"
+          className="py-36 bg-background relative flex items-center justify-center overflow-hidden"
         >
           <div className="text-center z-10 px-8 relative max-w-5xl mx-auto">
             {/* Decorative Frame Accents */}
@@ -272,7 +272,7 @@ export default function LandingPage() {
             <div className="absolute bottom-0 right-0 w-px h-24 bg-primary/30" />
 
             <Reveal>
-              <div className="relative inline-block mb-16">
+              <div className="relative inline-block mb-12">
                 {/* Subtle background glow for the text */}
                 <div className="absolute -inset-10 bg-primary/5 blur-[100px] rounded-full -z-10" />
 
@@ -309,10 +309,10 @@ export default function LandingPage() {
                 <Button
                   asChild
                   variant="ghost"
-                  className="h-16 px-16 rounded-none border border-transparent hover:border-border text-secondary font-bold text-[11px] uppercase tracking-[0.4em] transition-all"
+                  className="h-16 px-20 rounded-none border text-center border-transparent hover:border-border text-foreground hover:text-foreground font-bold text-[11px] uppercase tracking-[0.4em] transition-all"
                 >
-                  <Link href="/chef-apply" className="flex items-center gap-3">
-                    Join Us <ArrowRight className="w-4 h-4" />
+                  <Link href="/chef-apply" className="flex items-center justify-center gap-3">
+                    Join Us
                   </Link>
                 </Button>
               </div>

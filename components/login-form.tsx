@@ -47,7 +47,7 @@ export function LoginForm({
       <div className="space-y-12">
         <div className="space-y-3">
           <h2 className="text-5xl font-mono text-foreground tracking-tight">
-            Log <span className="italic text-primary">In</span>
+            Log<span className="text-primary">in</span>
           </h2>
           <p className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground font-bold">
             Enter your credentials
@@ -110,7 +110,7 @@ export function LoginForm({
             <div className="flex items-center justify-center gap-4">
               <div className="h-px w-8 bg-primary/10" />
               <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-bold text-center">
-                New to the Experience? <Link href="/auth/sign-up" className="text-primary font-bold ml-2 hover:underline underline-offset-8 transition-all">Sign up Here</Link>
+                New to the Dishpatch? <Link href="/auth/sign-up" className="text-primary font-bold ml-2 hover:underline underline-offset-8 transition-all">Sign up Here</Link>
               </p>
               <div className="h-px w-8 bg-primary/10" />
             </div>

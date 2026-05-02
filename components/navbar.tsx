@@ -18,11 +18,12 @@ export default function Navbar() {
     setMounted(true);
   }, []);
 
+  // Simplified navigation based on the Landing Page sections
   const navigationItems = [
-    { label: "The System", href: "#experience" },
-    { label: "About", href: "#about" },
-    { label: "Testimonials", href: "#testimonials" },
-    { label: "Gift an Evening", href: "#gift" },
+    { label: "Our Story", href: "#about" },
+    { label: "Gallery", href: "#testimonials" },
+    { label: "Process", href: "#how-it-works" },
+    { label: "Gift a Meal", href: "#gift" },
   ];
 
   return (
@@ -30,7 +31,7 @@ export default function Navbar() {
       <nav className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="hidden md:grid grid-cols-12 h-16 items-center">
           
-          {/* Column 1: Logo (Clean & Adaptive) */}
+          {/* Column 1: Logo - UNTOUCHED */}
           <div className="col-span-3 flex items-center">
             <Link href="/" className="flex items-center h-8 gap-3 group transition-opacity hover:opacity-80">
               <Logo width={40} height={40} />
@@ -40,22 +41,22 @@ export default function Navbar() {
                     theme === "dark" ? (
                       <LogoTextLight /> 
                     ) : (
-                        <LogoTextDark className="mb-1"/>
+                        <LogoTextDark className="mb-2"/>
                     )
                   )}
                 </span>
-                <p className="px-1">PH</p>
+                <p className="px-1 font-black text-[14px]">PH®</p>
               </div>
             </Link>
           </div>
 
-          {/* Column 2: Navigation Links (Centered) */}
+          {/* Column 2: Simplified Navigation Links */}
           <div className="col-span-6 flex justify-center items-center gap-2">
             {navigationItems.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
-                className="relative px-5 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground hover:text-primary transition-all group"
+                className="relative px-4 py-2 text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground hover:text-primary transition-all group"
               >
                 {item.label}
                 <span className="absolute bottom-1 left-1/2 w-0 h-[1.5px] bg-primary transition-all duration-300 group-hover:w-1/3 group-hover:left-1/3" />
@@ -63,10 +64,10 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Column 3: Actions (Simplified) */}
+          {/* Column 3: Actions */}
           <div className="col-span-3 flex justify-end items-center gap-8">
             
-            {/* Stabilized Theme Slider */}
+            {/* Theme Toggle - UNTOUCHED */}
             <div className="flex items-center">
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -88,18 +89,16 @@ export default function Navbar() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Redesigned Auth Buttons: Simplified Text */}
+            <div className="flex items-center gap-4">
               <Link href="/auth/login">
-                <Button
-                  variant="ghost"
-                  className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-transparent px-2"
-                >
+                <button className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors">
                   Login
-                </Button>
+                </button>
               </Link>
-              <Link href="/auth/sign-up">
-                <Button className="h-9 px-6 rounded-none bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-widest border-none hover:bg-primary/90 transition-all">
-                  Get Started
+              <Link href="/book">
+                <Button className="h-8 px-5 rounded-none bg-foreground text-background font-bold text-[9px] uppercase tracking-[0.2em] hover:bg-primary hover:text-primary-foreground transition-all border border-foreground hover:border-primary">
+                  Sign Up
                 </Button>
               </Link>
             </div>

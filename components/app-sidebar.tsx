@@ -50,7 +50,6 @@ export function AppSidebar() {
   const { toggleSidebar, state, isMobile } = useSidebar()
   const isCollapsed = state === "collapsed"
 
-  // Load User Identity
   React.useEffect(() => {
     setMounted(true)
     const loadIdentity = async () => {
@@ -80,28 +79,32 @@ export function AppSidebar() {
   React.useEffect(() => {
     if (!userId) return
 
-    // Define the channel outside the async function so the cleanup has access to it immediately
-    const channel = supabase.channel(`public:global_messages`)
+    let isMounted = true
+    let channel: any = null
 
     const setupListener = async () => {
-      // 1. Get all conversations this user is a part of
+      // 1. Await the database calls first
       const { data: convos } = await supabase
         .from("conversations")
         .select("id")
         .or(`chef_id.eq.${userId},client_id.eq.${userId}`)
       
+      // 2. If component unmounted during the await, bail out immediately
+      if (!isMounted) return
+      
       const convoIds = convos?.map(c => c.id) || []
 
-      // 2. Attach listeners BEFORE calling .subscribe()
+      // 3. Now that async work is done, create and subscribe synchronously
+      channel = supabase.channel(`global_messages_${userId}`) // Unique channel name prevents conflicts
+      
       channel
         .on('postgres_changes', { 
           event: 'INSERT', 
           schema: 'public', 
           table: 'messages' 
-        }, async (payload) => {
+        }, async (payload: any) => {
           const newMsg = payload.new
           
-          // Logic: message is for user's chat, not sent by user, and user is not on that chat page
           if (
             convoIds.includes(newMsg.conversation_id) && 
             newMsg.sender_id !== userId &&
@@ -115,13 +118,18 @@ export function AppSidebar() {
               .eq('id', newMsg.sender_id)
               .single()
             
-            setMessageToast({
-              senderName: senderProfile?.display_name || "Someone",
-              text: newMsg.content,
-              chatId: newMsg.conversation_id
-            })
+            // Only show toast if component is still mounted
+            if (isMounted) {
+              setMessageToast({
+                senderName: senderProfile?.display_name || "Someone",
+                text: newMsg.content,
+                chatId: newMsg.conversation_id
+              })
 
-            setTimeout(() => setMessageToast(null), 5000)
+              setTimeout(() => {
+                if (isMounted) setMessageToast(null)
+              }, 5000)
+            }
           }
         })
         .subscribe()
@@ -129,13 +137,14 @@ export function AppSidebar() {
 
     setupListener()
 
-    // Proper cleanup to prevent "cannot add callbacks" error on re-render
     return () => {
-      supabase.removeChannel(channel)
+      isMounted = false
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
     }
   }, [userId, supabase, pathname])
 
-  // Clear unread badge when user navigates to messages
   React.useEffect(() => {
     if (pathname.includes('/messages')) {
       setUnreadMsg(false)

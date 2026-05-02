@@ -1,8 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import { MessageSquare, Search } from "lucide-react"
-import { AppSidebar } from "@/components/app-sidebar" 
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 
 export default async function MessagesLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -22,12 +20,10 @@ export default async function MessagesLayout({ children }: { children: React.Rea
     .or(`chef_id.eq.${user.id},client_id.eq.${user.id}`)
 
   return (
-    <SidebarProvider>
+
       <div className="flex h-screen w-full overflow-hidden bg-background">
         {/* MAIN NAVIGATION */}
-        <AppSidebar />
 
-        <SidebarInset className="flex flex-1 overflow-hidden">
           <div className="flex w-full h-full">
             {/* COLUMN 1: Inbox Sidebar */}
             <aside className="w-80 border-r border-border flex flex-col bg-card/30 shrink-0">
@@ -105,8 +101,6 @@ export default async function MessagesLayout({ children }: { children: React.Rea
               {children}
             </main>
           </div>
-        </SidebarInset>
       </div>
-    </SidebarProvider>
   )
 }
