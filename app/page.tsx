@@ -54,7 +54,7 @@ export default function LandingPage() {
       <Navbar />
 
       <main>
-        {/* HERO: Redesigned Buttons & Clean Imagery */}
+        {/* HERO: Simplified and More Personal */}
         <section className="relative min-h-[95vh] flex items-center pt-12">
           <div className="container mx-auto px-8 grid lg:grid-cols-12 gap-0 items-center">
             <div className="lg:col-span-6 z-20 bg-background/80 backdrop-blur-md lg:bg-transparent py-12 lg:py-0">
@@ -62,32 +62,32 @@ export default function LandingPage() {
                 <div className="flex items-center gap-4 mb-8">
                   <span className="h-px w-12 bg-primary" />
                   <span className="text-primary font-bold text-[10px] uppercase tracking-[0.5em]">
-                    v1.0 // Culinary Professionalism
+                    DISH PATCH PH // EST. 2026
                   </span>
                 </div>
               </Reveal>
 
               <Reveal delay={0.2}>
                 <h1 className="text-6xl md:text-8xl lg:text-[9rem] font-black leading-[0.8] tracking-tighter uppercase mb-10">
-                  Luxury <br />
+                  Stories <br />
                   <span className="text-primary italic font-medium lowercase">
-                    on
+                    on a
                   </span>{" "}
                   <br />
-                  Demand.
+                  Plate.
                 </h1>
               </Reveal>
 
               <Reveal delay={0.3}>
                 <div className="flex flex-col gap-10 items-start">
                   <p className="text-lg font-light text-muted-foreground leading-relaxed max-w-sm">
-                    World-class culinary artisans deployed to your chosen venue.
+                    Every dish has a story. We bring yours to life with 
+                    professional chefs right in your own space.
                   </p>
 
-                  {/* REDESIGNED HERO BUTTONS */}
                   <div className="flex flex-wrap gap-6 items-center">
                     <Link
-                      href="/book"
+                      href="/auth/login"
                       className="group relative flex items-center justify-center"
                     >
                       <div className="absolute inset-0 bg-primary translate-x-1 translate-y-1 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-300" />
@@ -97,10 +97,10 @@ export default function LandingPage() {
                     </Link>
 
                     <Link
-                      href="/chef-apply"
+                      href="/auth/sign-up"
                       className="group flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground hover:text-primary transition-colors"
                     >
-                      Apply as Chef
+                      Cook With Us
                       <span className="h-[1px] w-8 bg-muted-foreground group-hover:w-12 group-hover:bg-primary transition-all duration-300" />
                     </Link>
                   </div>
@@ -108,7 +108,6 @@ export default function LandingPage() {
               </Reveal>
             </div>
 
-            {/* HERO IMAGE: Clean, High-Def Content */}
             <div className="lg:col-span-6 relative h-[60vh] lg:h-[85vh] w-full mt-12 lg:mt-0">
               <div className="absolute inset-0 z-0 bg-primary/5 translate-x-8 translate-y-8" />
               <motion.div
@@ -117,19 +116,17 @@ export default function LandingPage() {
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className="relative h-full w-full overflow-hidden shadow-2xl border border-border"
               >
-                {/* Replaced with a clean, vibrant food focus image */}
                 <img
                   src="https://images.unsplash.com/photo-1551218808-94e220e084d2?q=80&w=2400"
                   className="w-full h-full object-cover saturate-[1.1] contrast-[1.05] transition-transform duration-[10s] hover:scale-110"
-                  alt="Elite Culinary Execution"
+                  alt="Real food, real passion"
                 />
               </motion.div>
-
             </div>
           </div>
         </section>
 
-        {/* ABOUT US: Modern Editorial Grid */}
+        {/* ABOUT US: Section contents preserved exactly as requested */}
         <section
           id="about"
           className="py-40 bg-background relative overflow-hidden border-t border-border"
@@ -171,7 +168,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* TESTIMONIALS: Visual Proof Gallery */}
+        {/* TESTIMONIALS: Heartfelt Header */}
         <section
           id="testimonials"
           className="py-32 border-y border-border bg-muted/5"
@@ -180,10 +177,10 @@ export default function LandingPage() {
             <div className="mb-20 flex justify-between items-end">
               <div>
                 <span className="text-primary font-bold text-[10px] uppercase tracking-[0.5em]">
-                  Testimonials
+                  Shared Moments
                 </span>
                 <h2 className="text-5xl font-black uppercase tracking-tighter mt-4">
-                  Experience on a Plate.
+                  Food people love.
                 </h2>
               </div>
             </div>
@@ -207,7 +204,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* HOW IT WORKS: The Service Journey */}
+        {/* HOW IT WORKS: Simple Service Journey */}
         <section
           id="how-it-works"
           className="py-32 border-b border-border bg-muted/10"
@@ -215,10 +212,10 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-8">
             <div className="mb-20">
               <span className="text-primary font-bold text-[10px] uppercase tracking-[0.5em]">
-                Engagement
+                The Process
               </span>
               <h2 className="text-5xl font-black uppercase tracking-tighter mt-4">
-                The Journey.
+                How it happens.
               </h2>
             </div>
 
@@ -227,17 +224,17 @@ export default function LandingPage() {
                 {
                   icon: <Calendar className="w-5 h-5" />,
                   title: "Book",
-                  desc: "Secure an appointment for a consultation or event via our digital portal.",
+                  desc: "Pick a date and tell us what you're craving through our simple booking tool.",
                 },
                 {
                   icon: <Eye className="w-5 h-5" />,
                   title: "Preview",
-                  desc: "Browse artisan portfolios and testimonials as we curate your menu.",
+                  desc: "Meet your chef and see the menu ideas we've put together just for you.",
                 },
                 {
                   icon: <UtensilsCrossed className="w-5 h-5" />,
                   title: "Execute",
-                  desc: "Deployment of an elite culinary artisan to your chosen venue for final service.",
+                  desc: "Our chef arrives at your place to turn fresh ingredients into a meal to remember.",
                 },
               ].map((item, i) => (
                 <div
@@ -259,13 +256,12 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* READY TO JOIN: Final CTA */}
+        {/* READY TO JOIN: "Savor the moment" preserved */}
         <section
           id="gift"
           className="py-36 bg-background relative flex items-center justify-center overflow-hidden"
         >
           <div className="text-center z-10 px-8 relative max-w-5xl mx-auto">
-            {/* Decorative Frame Accents */}
             <div className="absolute top-0 left-0 w-24 h-px bg-primary/30" />
             <div className="absolute top-0 left-0 w-px h-24 bg-primary/30" />
             <div className="absolute bottom-0 right-0 w-24 h-px bg-primary/30" />
@@ -273,7 +269,6 @@ export default function LandingPage() {
 
             <Reveal>
               <div className="relative inline-block mb-12">
-                {/* Subtle background glow for the text */}
                 <div className="absolute -inset-10 bg-primary/5 blur-[100px] rounded-full -z-10" />
 
                 <h2 className="text-6xl md:text-8xl lg:text-9xl font-black uppercase tracking-tighter leading-[0.8]">
@@ -283,36 +278,32 @@ export default function LandingPage() {
                   </span>
                 </h2>
 
-                {/* Minimalist Sub-label */}
                 <div className="mt-8 flex items-center justify-center gap-4 opacity-30">
                   <span className="text-[10px] font-bold uppercase tracking-[0.8em]">
-                    Final Service
+                    Real Food
                   </span>
                   <Plus className="w-3 h-3" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.8em]">
-                    EST. 2026
+                    Real People
                   </span>
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-8 justify-center items-center">
-                {/* Primary Action: The Invitation */}
                 <Link href="/book" className="group relative">
-                  {/* Animated Shadow/Offset Layer */}
                   <div className="absolute inset-0 bg-primary translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-300 shadow-xl shadow-black/20" />
                   <div className="relative h-16 px-16 bg-secondary text-secondary-foreground border border-secondary font-bold text-[11px] uppercase tracking-[0.4em] flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                    Book an Appointment
+                    Start Your Story
                   </div>
                 </Link>
 
-                {/* Secondary Action: The Partnership */}
                 <Button
                   asChild
                   variant="ghost"
                   className="h-16 px-20 rounded-none border text-center border-transparent hover:border-border text-foreground hover:text-foreground font-bold text-[11px] uppercase tracking-[0.4em] transition-all"
                 >
                   <Link href="/chef-apply" className="flex items-center justify-center gap-3">
-                    Join Us
+                    Partner with Us
                   </Link>
                 </Button>
               </div>

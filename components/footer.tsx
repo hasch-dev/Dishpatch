@@ -88,12 +88,12 @@ export default function Footer() {
                       <div className="h-4 w-24 bg-transparent" /> // SSR Placeholder
                     )}
                   </div>
-                  <p className="px-1 text-[10px] font-black">PH®</p>
+                  <p className="px-1 text-[12px] font-black">PH®</p>
                 </div>
               </Link>
             </div>
 
-            <p className="max-w-sm text-xs font-light leading-relaxed opacity-60 uppercase tracking-[0.2em]">
+            <p className="max-w-sm text-xs font-light leading-relaxed opacity-80 uppercase tracking-[0.2em]">
               A modern culinary system deploying elite artisans and bespoke
               gastronomy to the world's most discerning venues.
               <br /><br />
@@ -118,7 +118,7 @@ export default function Footer() {
 
           {/* Column 2: System Navigation */}
           <div className="md:col-span-2 space-y-8">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.6em] text-primary/70">
+            <h4 className="text-[12px] font-bold uppercase tracking-[0.6em] text-primary">
               System
             </h4>
             <ul className="space-y-5">
@@ -126,7 +126,7 @@ export default function Footer() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-[10px] font-medium uppercase tracking-widest opacity-50 hover:opacity-100 hover:text-primary transition-all flex items-center gap-3 group"
+                    className="text-[12px] font-medium uppercase tracking-widest opacity-80 hover:opacity-100 hover:text-primary transition-all flex items-center gap-3 group"
                   >
                     <span className="h-px w-0 bg-primary group-hover:w-4 transition-all duration-300" />
                     {item.name}
@@ -138,7 +138,7 @@ export default function Footer() {
 
           {/* Column 3: Resources */}
           <div className="md:col-span-2 space-y-8">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.6em] text-primary/70">
+            <h4 className="text-[12px] font-bold uppercase tracking-[0.6em] text-primary">
               Support
             </h4>
             <ul className="space-y-5">
@@ -146,7 +146,7 @@ export default function Footer() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-[10px] font-medium uppercase tracking-widest opacity-50 hover:opacity-100 hover:text-primary transition-all flex items-center gap-3 group"
+                    className="text-[12px] font-medium uppercase tracking-widest opacity-80 hover:opacity-100 hover:text-primary transition-all flex items-center gap-3 group"
                   >
                     <span className="h-px w-0 bg-primary group-hover:w-4 transition-all duration-300" />
                     {item.name}
@@ -159,7 +159,7 @@ export default function Footer() {
           {/* Column 4: Direct Inquiries */}
           <div className="md:col-span-4 space-y-12">
             <div className="space-y-6">
-              <h4 className="text-[10px] font-bold uppercase tracking-[0.6em] text-primary/70">
+              <h4 className="text-[12px] font-bold uppercase tracking-[0.6em] text-primary">
                 Direct Inquiries
               </h4>
               <Link 
@@ -175,18 +175,18 @@ export default function Footer() {
                   className="opacity-40 group-hover:opacity-100 group-hover:text-primary group-hover:translate-x-1 transition-all" 
                 />
               </Link>
-              <p className="text-[9px] uppercase tracking-widest opacity-40 italic">
+              <p className="text-[12px] uppercase tracking-widest opacity-40 italic">
                 Average response time: &lt; 15 minutes
               </p>
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-[0.6em] text-primary/70">
+              <h4 className="text-[12px] font-bold uppercase tracking-[0.6em] text-primary">
                 Presence
               </h4>
               <div className="flex items-center gap-3 opacity-40 hover:opacity-100 transition-opacity">
                 <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-                <span className="text-[9px] font-bold uppercase tracking-widest">
+                <span className="text-[12px] font-bold uppercase tracking-widest">
                   Philippines
                 </span>
               </div>
@@ -195,7 +195,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Legal Bar */}
-        <div className="mt-32 pt-12 border-t border-border flex flex-col md:flex-row justify-between items-center gap-8 text-[9px] font-bold uppercase tracking-[0.4em] opacity-30">
+        <div className="mt-32 pt-12 border-t border-border flex flex-col md:flex-row justify-between items-center gap-8 text-[12px] font-bold uppercase tracking-[0.4em] opacity-30">
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-12">
             <p className="italic">
               © {new Date().getFullYear()} Dishpatch Studio
