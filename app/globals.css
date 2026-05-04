@@ -180,3 +180,24 @@
 .request-tab:hover {
   @apply text-primary/70;
 }
+
+
+/* Custom Tooltip Styling */
+[data-radix-tooltip-content] {
+  @apply bg-secondary text-secondary-foreground text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-none animate-in fade-in zoom-in-95 duration-200;
+}
+
+/* Luxury Calendar Fixes */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  @apply opacity-0 absolute inset-0 w-full h-full cursor-pointer;
+}
+
+/* Custom Selection Glow */
+.button-selected {
+  @apply border-primary bg-primary/5 ring-1 ring-primary shadow-[0_0_20px_rgba(var(--primary),0.1)];
+}
+
+/* Snappy Snapping Transitions */
+.step-transition {
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
