@@ -117,7 +117,7 @@ export default function LandingPage() {
                 className="relative h-full w-full overflow-hidden shadow-2xl border border-border"
               >
                 <img
-                  src="https://images.unsplash.com/photo-1551218808-94e220e084d2?q=80&w=2400"
+                  src="/dishpatch-pics/1.jpg"
                   className="w-full h-full object-cover saturate-[1.1] contrast-[1.05] transition-transform duration-[10s] hover:scale-110"
                   alt="Real food, real passion"
                 />
@@ -255,6 +255,99 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* CULINARY GATEWAYS: Side-by-Side Flex Section */}
+        {/* SECTION HEADER */}
+        <div id="culinary-gallery">
+          <div className="container mx-auto px-8 pt-32 pb-16">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="h-px w-12 bg-primary" />
+              <span className="text-primary font-bold text-[10px] uppercase tracking-[0.5em]">
+                Explore the System
+              </span>
+            </div>
+            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter">
+              Beyond the <br /> 
+              <span className="text-primary italic font-medium lowercase tracking-normal">Private Table.</span>
+            </h2>
+          </div>
+
+          {/* SIDE-BY-SIDE GATEWAYS */}
+          <section className="w-full flex flex-col md:flex-row h-[70vh] md:h-[85vh] border-y border-border bg-background overflow-hidden">
+            
+            {/* Left Side: Culinary Gallery */}
+            <Link 
+              href="/culinary_gallery" 
+              className="relative flex-1 group overflow-hidden border-b md:border-b-0 md:border-r border-border bg-black"
+            >
+              {/* Base Image */}
+              <img 
+                src="https://images.unsplash.com/photo-1559339352-11d035aa65de?q=80&w=1000" 
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] ease-out group-hover:scale-110 group-hover:opacity-60"
+                alt="Chef's Gallery"
+              />
+
+              {/* The Atmosphere: Constant mask on left, expands to full cover on hover */}
+              <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/60 to-transparent transition-all duration-700 ease-in-out group-hover:bg-background/90 group-hover:backdrop-blur-sm" />
+
+              <div className="relative z-20 h-full flex flex-col justify-center p-12 md:p-20">
+                <div className="max-w-xs space-y-6">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-primary">
+                    Portfolio
+                  </span>
+                  <h3 className="text-5xl md:text-6xl font-black uppercase tracking-tighter leading-[0.8] transition-transform duration-500 group-hover:-translate-y-2">
+                    Culinary <br /> Gallery
+                  </h3>
+                  <div className="overflow-hidden">
+                      <p className="text-sm font-light text-muted-foreground leading-relaxed translate-y-full opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+                        A visual record of our chef's signature works, from seasonal menus to bespoke a la carte creations.
+                      </p>
+                  </div>
+                  <div className="flex items-center gap-4 pt-4">
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Enter System</span>
+                    <div className="h-px w-8 bg-primary transition-all duration-500 group-hover:w-24" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Right Side: Culinary Products */}
+            <Link 
+              href="/products" 
+              className="relative flex-1 group overflow-hidden bg-black"
+            >
+              {/* Base Image */}
+              <img 
+                src="https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000" 
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] ease-out group-hover:scale-110 group-hover:opacity-60"
+                alt="Luxury Products"
+              />
+
+              {/* The Atmosphere: Constant mask on left, expands to full cover on hover */}
+              <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/60 to-transparent transition-all duration-700 ease-in-out group-hover:bg-background/90 group-hover:backdrop-blur-sm" />
+
+              <div className="relative z-20 h-full flex flex-col justify-center p-12 md:p-20">
+                <div className="max-w-xs space-y-6">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-primary">
+                    Commissary
+                  </span>
+                  <h3 className="text-5xl md:text-6xl font-black uppercase tracking-tighter leading-[0.8] transition-transform duration-500 group-hover:-translate-y-2">
+                    Culinary <br /> Products
+                  </h3>
+                  <div className="overflow-hidden">
+                      <p className="text-sm font-light text-muted-foreground leading-relaxed translate-y-full opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
+                        Exclusive pantry staples and luxury ingredients curated by our team for your own kitchen.
+                      </p>
+                  </div>
+                  <div className="flex items-center gap-4 pt-4">
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Explore Shop</span>
+                    <div className="h-px w-8 bg-primary transition-all duration-500 group-hover:w-24" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </section>
+        </div>
 
         {/* READY TO JOIN: "Savor the moment" preserved */}
         <section
