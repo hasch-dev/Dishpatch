@@ -277,7 +277,7 @@ export default function LandingPage() {
             
             {/* Left Side: Culinary Gallery */}
             <Link 
-              href="/culinary_gallery" 
+              href="/gallery" 
               className="relative flex-1 group overflow-hidden border-b md:border-b-0 md:border-r border-border bg-black"
             >
               {/* Base Image */}

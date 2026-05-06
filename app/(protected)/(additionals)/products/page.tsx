@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Navbar from "@/components/navbar";
-import { Search, Send, ArrowRight, PackageOpen } from "lucide-react";
+import Link from "next/link";
+import { Search, Send, ArrowRight, PackageOpen, Home, Image as ImageIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,10 +54,34 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans">
-      <Navbar />
+    <div className="min-h-screen bg-background flex flex-col font-sans relative">
       
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 h-[calc(100vh-4rem)] overflow-hidden">
+      {/* FLOATING NAVIGATION */}
+      <motion.div 
+        initial={{ y: 50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 p-2 bg-background/80 backdrop-blur-xl border border-border rounded-full shadow-2xl"
+      >
+        <Link href="/">
+          <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/20 hover:text-primary transition-colors">
+            <Home className="h-5 w-5" />
+          </Button>
+        </Link>
+        <Link href="/gallery">
+          <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/20 hover:text-primary transition-colors">
+            <ImageIcon className="h-5 w-5" />
+          </Button>
+        </Link>
+        <Link href="/products">
+          <Button variant="ghost" size="icon" className="rounded-full bg-primary/10 text-primary transition-colors">
+            <PackageOpen className="h-5 w-5" />
+          </Button>
+        </Link>
+      </motion.div>
+
+      {/* FULL SCREEN LAYOUT */}
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 h-screen overflow-hidden">
         
         {/* LEFT: Searchable List */}
         <section className="lg:col-span-3 border-r border-border bg-sidebar flex flex-col h-full">
@@ -74,7 +98,7 @@ export default function ProductsPage() {
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-2 pb-24">
             {filteredProducts.map((product) => (
               <button
                 key={product.id}
@@ -107,7 +131,7 @@ export default function ProductsPage() {
         </section>
 
         {/* CENTER: Image & Details */}
-        <section className="lg:col-span-6 border-r border-border bg-background flex flex-col h-full relative">
+        <section className="lg:col-span-6 border-r border-border bg-background flex flex-col h-full relative pb-24 lg:pb-0">
           <AnimatePresence mode="wait">
             {selectedProduct && (
               <motion.div 
@@ -118,7 +142,6 @@ export default function ProductsPage() {
                 transition={{ duration: 0.3 }}
                 className="flex flex-col h-full"
               >
-                {/* Image */}
                 <div className="flex-1 relative bg-black overflow-hidden border-b border-border">
                   {selectedProduct.image_url ? (
                     <img 
@@ -134,7 +157,6 @@ export default function ProductsPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
                 </div>
 
-                {/* Details Meta */}
                 <div className="p-8 bg-background shrink-0">
                   <div className="flex justify-between items-end mb-4">
                     <div>
@@ -165,7 +187,7 @@ export default function ProductsPage() {
         </section>
 
         {/* RIGHT: Detailed Description & Inquiry */}
-        <section className="lg:col-span-3 bg-sidebar flex flex-col h-full overflow-y-auto custom-scrollbar">
+        <section className="lg:col-span-3 bg-sidebar flex flex-col h-full overflow-y-auto custom-scrollbar pb-24 lg:pb-0">
           {selectedProduct ? (
             <div className="p-8 flex flex-col h-full">
               <div className="flex-1">
@@ -184,7 +206,6 @@ export default function ProductsPage() {
                 )}
               </div>
 
-              {/* Inquiry Form */}
               <div className="mt-12 pt-8 border-t border-border">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 text-primary flex items-center gap-2">
                   <Send className="h-3 w-3" /> Request Information
