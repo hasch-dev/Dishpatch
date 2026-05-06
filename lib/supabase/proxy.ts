@@ -1,3 +1,4 @@
+// proxy.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -6,7 +7,6 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
-  // Initialize Supabase client with SSR cookie handling
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -30,21 +30,17 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  // IMPORTANT: Do not remove getUser(). This refreshes the session if needed.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // This is the "hassle-killer": it refreshes the session automatically
+  const { data: { user } } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname
 
-  // 1. PUBLIC LANDING PAGE
-  // Always allow access to the home page so you can "come back" to it.
+  // Public Home Page
   if (path === '/') {
     return supabaseResponse
   }
 
-  // 2. PROTECTED APP ROUTES
-  // If no user is present, redirect anyone trying to access the app logic to login.
+  // App Gate: Redirect to login if trying to access dashboard/booking without a session
   const isAppRoute = path.startsWith('/dashboard') || 
                      path.startsWith('/booking') || 
                      path.startsWith('/protected')
@@ -55,9 +51,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 3. AUTH GATE
-  // If a user is already signed in, prevent them from seeing Login/Sign-up.
-  // Instead, bounce them to the dashboard.
+  // Auth Gate: Redirect to dashboard if user is already logged in
   const isAuthRoute = path.startsWith('/auth/login') || 
                       path.startsWith('/auth/sign-up')
 
@@ -67,6 +61,5 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // IMPORTANT: Return the supabaseResponse to maintain cookie sync
   return supabaseResponse
 }
