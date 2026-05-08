@@ -41,12 +41,12 @@ export default function LandingPage() {
   if (!isMounted) return null;
 
   const galleryImages = [
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1000",
-    "https://images.unsplash.com/photo-1559339352-11d035aa65de?q=80&w=1000",
-    "https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000",
-    "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=1000",
-    "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=1000",
-    "https://images.unsplash.com/photo-1551218808-94e220e084d2?q=80&w=1000",
+    "/dishpatch-pics/17.jpg",
+    "/dishpatch-pics/4.jpg",
+    "/dishpatch-pics/9.jpg",
+    "/dishpatch-pics/1.jpg",
+    "/dishpatch-pics/2.jpg",
+    "/dishpatch-pics/3.jpg",
   ];
 
   return (
@@ -55,12 +55,12 @@ export default function LandingPage() {
 
       <main>
         {/* HERO: Simplified and More Personal */}
-        <section className="relative min-h-[95vh] flex items-center pt-12">
+        <section className="relative min-h-[70vh] flex items-center pt-8">
           <div className="container mx-auto px-8 grid lg:grid-cols-12 gap-0 items-center">
             <div className="lg:col-span-6 z-20 bg-background/80 backdrop-blur-md lg:bg-transparent py-12 lg:py-0">
               <Reveal delay={0.1}>
                 <div className="flex items-center gap-4 mb-8">
-                  <span className="h-px w-12 bg-primary" />
+                  <span className="h-px w-8 bg-primary" />
                   <span className="text-primary font-bold text-[10px] uppercase tracking-[0.5em]">
                     DISH PATCH PH // EST. 2026
                   </span>
@@ -112,12 +112,12 @@ export default function LandingPage() {
               <div className="absolute inset-0 z-0 bg-primary/5 translate-x-8 translate-y-8" />
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
+                animate={{ opacity: 1, scale: 0.99 }}
+                transition={{ duration: 1, ease: "easeInOut" }}
                 className="relative h-full w-full overflow-hidden shadow-2xl border border-border"
               >
                 <img
-                  src="/dishpatch-pics/1.jpg"
+                  src="/dishpatch-pics/19.jpg"
                   className="w-full h-full object-cover saturate-[1.1] contrast-[1.05] transition-transform duration-[10s] hover:scale-110"
                   alt="Real food, real passion"
                 />

@@ -65,28 +65,28 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="font-serif sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-md transition-all duration-300">
-      <nav className="mx-auto max-w-7xl px-2 lg:px-4">
-        <div className="hidden md:grid grid-cols-12 h-16 items-center">
+    <header className="font-serif sticky top-0 z-50 flex items-center justify-between h-16 border-b border-border/40 bg-background/95 backdrop-blur-md transition-all duration-300">
+      <nav className="mx-auto w-full px-2 lg:px-4">
+        <div className="flex w-full h-16 gap-4 items-center">
           
-          <div className="col-span-3 flex items-center">
+          <div className="w-full flex items-center">
             <Link href="/" className="flex items-center h-8 group transition-opacity hover:opacity-80">
               <Logo width={32} height={32} />
               <div className="flex flex-row items-center justify-center">
                 <span className="w-32 text-sm gap-2 font-bold uppercase flex items-center justify-center tracking-tighter text-foreground italic">
-                  {mounted && (theme === "dark" ? <LogoTextLight /> : <LogoTextDark className="mb-2"/>)}
+                  {mounted && (theme === "dark" ? <LogoTextLight className="w-48"/> : <LogoTextDark className="mb-1 w-48"/>)}
                 </span>
                 <p className="px-1 font-black text-[14px]">PH®</p>
               </div>
             </Link>
           </div>
 
-          <div className="col-span-6 flex justify-center items-center gap-1">
+          <div className="flex flex-row justify-between items-center gap-2 text-nowrap w-full ">
             {navigationItems.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
-                className="relative px-4 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground hover:text-primary transition-all group"
+                className="relative px-4 py-2 text-[12px] font-bold uppercase tracking-[0.1em] text-muted-foreground hover:text-primary transition-all group"
               >
                 {item.label}
                 <span className="absolute bottom-1 left-1/2 w-0 h-[1.5px] bg-primary transition-all duration-300 group-hover:w-1/3 group-hover:left-1/3" />
@@ -94,7 +94,7 @@ export default function Navbar() {
             ))}
           </div>
 
-          <div className="col-span-3 flex justify-end items-center gap-6">
+          <div className="w-full flex justify-end items-center gap-6">
             <div className="flex items-center">
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -110,7 +110,7 @@ export default function Navbar() {
               {user ? (
                 <Link href={dashboardPath} className="group flex items-center gap-3">
                   <div className="flex flex-col items-end">
-                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary italic">
+                    <span className="text-[8px] font-black uppercase tracking-[0.1em] text-primary italic">
                       {role === "chef" ? "Artisan" : "Client"}
                     </span>
                     <span className="text-[10px] font-bold uppercase tracking-tighter">
@@ -128,7 +128,7 @@ export default function Navbar() {
                   </Link>
                   <Link href="/auth/sign-up">
                     <Button variant="outline" className="h-9 px-6 rounded-none border-2 border-foreground bg-transparent text-foreground font-black text-[10px] uppercase tracking-[0.2em] hover:bg-foreground hover:text-background transition-all group flex items-center gap-2">
-                      Join
+                      Sign Up
                       <ArrowRight size={12} className="transition-transform group-hover:translate-x-1" />
                     </Button>
                   </Link>
