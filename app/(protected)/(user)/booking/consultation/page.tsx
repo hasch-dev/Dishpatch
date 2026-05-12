@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, X, Loader2 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-// FIX: Import the factory function from your specific client file
 import { createClient } from "@/lib/supabase/client"; 
 import StepAnimation from "@/components/booking/StepAnimation";
 
@@ -17,7 +16,6 @@ import Step6Summary from "@/components/booking/consultation/step6";
 
 export default function ConsultationForm() {
   const router = useRouter();
-  // FIX: Initialize the Supabase client inside the component
   const supabase = createClient(); 
   
   const [step, setStep] = useState(1);
@@ -58,28 +56,33 @@ export default function ConsultationForm() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // 1. Get current user via the browser client
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
         throw new Error("Session not found. Please ensure you are logged in.");
       }
 
-      // 2. Map frontend keys to SQL Column names
+      // Generate a dynamic title for the dashboard
+      const generatedTitle = formData.company 
+        ? `${formData.company} - Strategy Consultation` 
+        : `${formData.name} - Private Consultation`;
+
       const { data, error } = await supabase
         .from("bookings")
         .insert([
           {
             user_id: user.id,
             booking_type: "Consultation",
+            title: generatedTitle, // FIX: Injected Title
             recipient_name: formData.name,
             business_stage: formData.stage,
             company_name: formData.company,
             phone_number: `${formData.countryCode} ${formData.phone}`,
             location_city: formData.city,
             location_address: `${formData.address}, ${formData.province}`,
-            event_date: formData.startDate,
-            event_end_date: formData.endDate,
+            // FIX: Convert empty strings to null to avoid Postgres Date format errors
+            event_date: formData.startDate || null, 
+            event_end_date: formData.endDate || null,
             areas_of_focus: formData.areas_of_focus,
             objective_explanation: formData.objective_explanation,
             consultation_package: formData.consultation_package,
@@ -92,7 +95,6 @@ export default function ConsultationForm() {
 
       if (error) throw error;
 
-      // 3. Success Redirect
       router.push("/booking/success"); 
 
     } catch (error: any) {
@@ -130,8 +132,8 @@ export default function ConsultationForm() {
         </AnimatePresence>
       </main>
 
-      <footer className="sticky bottom-0 z-40 w-full bg-background border-t border-border py-6 px-6 flex justify-center">
-        <div className="w-full max-w-7xl flex justify-between items-center">
+      <footer className="sticky bottom-0 z-40 w-full bg-background border-t border-border py-6 flex justify-center">
+        <div className="w-full max-w-7xl flex justify-between items-center px-6">
           <button 
             onClick={prevStep} 
             disabled={step === 1 || loading} 

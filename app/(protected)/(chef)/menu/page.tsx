@@ -1,581 +1,271 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { 
-  Plus, Utensils, Save, 
-  Trash2, Edit3, Image as ImageIcon, 
-  Sparkles, Loader2, Layers, Check
+  Plus, Search, UtensilsCrossed, Trash2, 
+  Layers, Hash, Sparkles, LayoutGrid 
 } from "lucide-react";
-import { 
-  Dialog, DialogContent, DialogHeader, 
-  DialogTitle, DialogTrigger, DialogFooter 
-} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
-export default function GastronomicMenu() {
-  const supabase = createClient();
+// Custom Components
+import CreationTypePicker from "@/components/menu/creation-type-picker";
+import ALaCarteEditor from "@/components/menu/a-la-carte-editor";
+import GroupedMenuEditor from "@/components/menu/grouped-menu-editor";
+import CatalogCard from "@/components/menu/catalog-card"; // Using the refined card we built
+
+export default function ChefMenuPage() {
   const [items, setItems] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("a_la_carte");
+  const [search, setSearch] = useState("");
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [editorType, setEditorType] = useState<'a_la_carte' | 'grouped_menu' | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const supabase = useMemo(() => createClient(), []);
 
-  const fetchArchive = async () => {
-    setLoading(true);
+  // --- Logic ---
+
+  const handleBulkDelete = async () => {
+    // 1. Safety check to ensure records aren't purged accidentally
+    const isConfirmed = confirm(
+      `Warning: You are about to permanently purge ${selectedIds.length} record(s) from the Manifesto. This action cannot be undone. Proceed?`
+    );
     
-    // Fetch Masterpieces
-    const { data: itemsData, error: itemsError } = await supabase
-      .from('menu_items')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    // Fetch Collections
-    const { data: groupsData, error: groupsError } = await supabase
-      .from('culinary_groups')
-      .select('*')
-      .order('created_at', { ascending: false });
+    if (!isConfirmed) return;
 
-    if (!itemsError && itemsData) setItems(itemsData);
-    if (!groupsError && groupsData) setGroups(groupsData);
-    
-    setLoading(false);
-  };
+    try {
+      // 2. Execute the bulk delete on the chef_catalog_items table
+      const { error } = await supabase
+        .from("chef_catalog_items")
+        .delete()
+        .in("id", selectedIds);
 
-  useEffect(() => {
-    fetchArchive();
-  }, []);
+      if (error) throw error;
 
-  const handleDeleteItem = async (id: string) => {
-    const { error } = await supabase.from('menu_items').delete().eq('id', id);
-    if (error) {
-      toast.error("Failed to remove masterpiece.");
-    } else {
-      toast.success("Masterpiece removed.");
-      fetchArchive();
+      // 3. Post-purge cleanup
+      setSelectedIds([]); // Reset selection state
+      await fetchMenu();   // Refresh the UI to reflect changes
+      
+    } catch (error: any) {
+      console.error("Critical Failure during bulk purge:", error.message);
+      alert("Failed to delete items. Please check system logs.");
     }
   };
 
-  const handleDeleteGroup = async (id: string) => {
-    const { error } = await supabase.from('culinary_groups').delete().eq('id', id);
-    if (error) {
-      toast.error("Failed to disband collection.");
-    } else {
-      toast.success("Collection disbanded.");
-      fetchArchive();
+  const fetchMenu = async () => {
+    setIsLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("chef_catalog_items")
+      .select("*")
+      .eq("chef_id", user.id)
+      .order("created_at", { ascending: false });
+    
+    setItems(data || []);
+    setIsLoading(false);
+  };
+
+  useEffect(() => { fetchMenu(); }, [supabase]);
+
+  const handleSave = async (payload: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const finalPayload = { 
+        ...payload, 
+        chef_id: user?.id,
+        item_type: editorType || payload.item_type 
+    };
+
+    const { error } = selectedItem 
+        ? await supabase.from("chef_catalog_items").update(finalPayload).eq("id", selectedItem.id)
+        : await supabase.from("chef_catalog_items").insert([finalPayload]);
+
+    if (!error) {
+        fetchMenu();
+        closeAll();
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background text-foreground p-6 md:p-12 animate-in fade-in duration-700">
-      {/* HEADER SECTION - Reduced Sizes */}
-      <header className="max-w-7xl mx-auto mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-primary/80">
-            <Sparkles className="h-3 w-3" />
-            <span className="text-[9px] uppercase tracking-[0.4em] font-medium">Chef's Atelier</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-serif italic tracking-tighter leading-none text-foreground/90">
-            Gastronomic <span className="text-primary/70">Menu</span>
-          </h1>
+  const closeAll = () => {
+      setIsPickerOpen(false);
+      setEditorType(null);
+      setSelectedItem(null);
+  };
+
+  const filteredItems = items.filter(item => 
+    item.item_type === filter && 
+    item.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // --- Sub-sections for UI ---
+
+  const StatsHeader = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border/20 border border-border/20 mb-12">
+      <div className="bg-background p-6 space-y-2">
+        <p className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40">Catalog Volume</p>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-serif italic">{items.length}</span>
+          <span className="text-[10px] opacity-30 uppercase font-bold">Total Entries</span>
         </div>
-        <p className="max-w-xs text-[11px] font-light leading-relaxed text-muted-foreground italic border-l border-primary/20 pl-4 py-1">
-          "Cuisine is the only art that nourishes the soul while delighting the senses."
-        </p>
-      </header>
-
-      <div className="max-w-7xl mx-auto">
-        <Tabs defaultValue="alacarte" className="w-full">
-          <TabsList className="bg-transparent w-full justify-start rounded-none h-auto p-0 mb-10 border-b border-border/20 gap-8">
-            <TabsTrigger 
-              value="alacarte" 
-              className="data-[state=active]:text-foreground data-[state=active]:border-foreground text-muted-foreground border-b-2 border-transparent rounded-none bg-transparent px-0 pb-4 pt-0 font-medium uppercase tracking-[0.2em] text-[10px] transition-all hover:text-foreground/80"
-            >
-              The Library
-            </TabsTrigger>
-            <TabsTrigger 
-              value="grouped" 
-              className="data-[state=active]:text-foreground data-[state=active]:border-foreground text-muted-foreground border-b-2 border-transparent rounded-none bg-transparent px-0 pb-4 pt-0 font-medium uppercase tracking-[0.2em] text-[10px] transition-all hover:text-foreground/80"
-            >
-              The Collections
-            </TabsTrigger>
-          </TabsList>
-
-          {/* TAB: A LA CARTE */}
-          <TabsContent value="alacarte" className="space-y-10 outline-none animate-in fade-in duration-500">
-            <div className="flex justify-between items-end group">
-              <div className="space-y-1">
-                <h2 className="text-2xl font-serif italic text-foreground/80">Individual Masterpieces</h2>
-                <div className="h-[1px] w-8 bg-primary/40 transition-all duration-700 group-hover:w-20" />
-              </div>
-              <CreateItemDialog onRefresh={fetchArchive} />
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center py-32">
-                <Loader2 className="animate-spin h-6 w-6 text-primary/30" />
-              </div>
-            ) : items.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {items.map((item) => (
-                  <ItemCard 
-                    key={item.id} 
-                    item={item} 
-                    onDelete={() => handleDeleteItem(item.id)} 
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState 
-                icon={<Utensils className="h-8 w-8 stroke-[0.5px]" />} 
-                title="Library is Awaiting Entry" 
-                description="Begin archiving your culinary repertoire."
-              />
-            )}
-          </TabsContent>
-
-          {/* TAB: GROUPED MENU */}
-          <TabsContent value="grouped" className="space-y-10 outline-none animate-in fade-in duration-500">
-            <div className="flex justify-between items-end group">
-              <div className="space-y-1">
-                <h2 className="text-2xl font-serif italic text-foreground/80">Bespoke Collections</h2>
-                <div className="h-[1px] w-8 bg-primary/40 transition-all duration-700 group-hover:w-20" />
-              </div>
-              <CreateGroupDialog availableItems={items} onRefresh={fetchArchive} />
-            </div>
-            
-            {loading ? (
-              <div className="flex justify-center py-32">
-                <Loader2 className="animate-spin h-6 w-6 text-primary/30" />
-              </div>
-            ) : groups.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                 {groups.map((group) => (
-                   <GroupCard 
-                     key={group.id} 
-                     group={group} 
-                     onDelete={() => handleDeleteGroup(group.id)} 
-                   />
-                 ))}
-              </div>
-            ) : (
-              <EmptyState 
-                icon={<Layers className="h-8 w-8 stroke-[0.5px]" />} 
-                title="No Active Collections" 
-                description="Curate themed experiences or event packages."
-              />
-            )}
-          </TabsContent>
-        </Tabs>
+      </div>
+      <div className="bg-background p-6 space-y-2 border-l border-border/10">
+        <p className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40">Composition Ratio</p>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-serif italic">
+            {items.filter(i => i.item_type === 'grouped_menu').length}
+          </span>
+          <span className="text-[10px] opacity-30 uppercase font-bold">Active Menus</span>
+        </div>
+      </div>
+      <div className="bg-background p-6 space-y-2 border-l border-border/10">
+        <p className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40">Manifesto Status</p>
+        <div className="flex items-center gap-2 text-primary">
+          <Sparkles size={14} />
+          <span className="text-[10px] uppercase font-black tracking-widest italic">Live & Synchronized</span>
+        </div>
       </div>
     </div>
   );
-}
-
-/* --- COMPONENTS --- */
-
-function ItemCard({ item, onDelete }: { item: any, onDelete: () => void }) {
-  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <div className="group cursor-pointer space-y-4 flex flex-col">
-          <div className="relative aspect-[3/4] overflow-hidden bg-secondary/10 border border-border/10">
-            {item.image_url ? (
-              <img src={item.image_url} alt={item.name} className="object-cover w-full h-full transition-all duration-1000 group-hover:scale-105" />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <ImageIcon className="h-6 w-6 text-muted-foreground/20 font-thin" />
-              </div>
-            )}
+    <div className="min-h-screen bg-background p-8 max-w-7xl mx-auto space-y-12 pb-40">
+      
+      {/* 1. Page Title & Action */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 pt-12">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 opacity-30">
+            <Hash size={12} />
+            <p className="text-[9px] font-bold uppercase tracking-[0.5em]">System_v.16.2</p>
           </div>
-          <div className="space-y-2 text-center px-2 flex-grow">
-            <h3 className="font-serif text-lg italic text-foreground/90">{item.name}</h3>
-            <div className="flex items-center justify-center gap-2 text-[9px] uppercase tracking-widest text-muted-foreground">
-              <span>{item.pax_count} Pax</span>
-              <span className="h-1 w-1 rounded-full bg-primary/40" />
-              <span className="font-medium text-foreground/70">₱{Number(item.price).toLocaleString()}</span>
-            </div>
-          </div>
+          <h1 className="text-7xl font-serif italic tracking-tight leading-none">The Manifesto</h1>
+          <p className="max-w-md text-xs text-muted-foreground leading-relaxed italic opacity-60">
+            Your centralized repository for culinary components and curated experiences. 
+            Manage individual items or assemble them into complex sequences.
+          </p>
         </div>
-      </DialogTrigger>
-      
-      <DialogContent className="max-w-[850px] w-[95vw] p-0 border border-border/20 bg-background/95 backdrop-blur-3xl overflow-hidden shadow-2xl rounded-none max-h-[90vh]">
-        <ScrollArea className="h-full max-h-[90vh]">
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            <div className="bg-secondary/10 relative overflow-hidden min-h-[300px]">
-               {item.image_url ? (
-                 <img src={item.image_url} alt={item.name} className="object-cover w-full h-full absolute inset-0" />
-               ) : (
-                 <div className="absolute inset-0 flex items-center justify-center">
-                   <ImageIcon className="h-10 w-10 text-muted-foreground/10 font-thin" />
-                 </div>
-               )}
-            </div>
-            <div className="p-8 lg:p-12 flex flex-col justify-between space-y-8">
-              <div className="space-y-8">
-                <div>
-                  <span className="text-[9px] uppercase tracking-[0.4em] text-primary/80 font-medium">Masterpiece Details</span>
-                  <h2 className="text-3xl lg:text-4xl font-serif italic mt-2 text-foreground/90 leading-tight">{item.name}</h2>
-                </div>
-                
-                <div className="space-y-6">
-                  <section>
-                    <Label className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/10 pb-2 w-full flex">Ingredients</Label>
-                    <p className="text-sm font-light leading-relaxed mt-4 italic text-foreground/70">
-                      {item.ingredients || "Details of this creation are available upon request."}
-                    </p>
-                  </section>
-                  
-                  <div className="flex justify-between items-center text-sm pt-4 border-t border-border/10">
-                    <span className="font-light text-muted-foreground text-[10px] uppercase tracking-widest">Rate</span>
-                    <span className="font-serif italic text-2xl text-foreground/90">₱{Number(item.price).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
+        
+        <Button 
+          onClick={() => setIsPickerOpen(true)}
+          className="rounded-none bg-primary text-primary-foreground px-10 h-14 uppercase text-[10px] font-black tracking-[0.2em] hover:tracking-[0.3em] transition-all"
+        >
+          <Plus className="mr-2 h-4 w-4" /> New Creation
+        </Button>
+      </header>
 
-              <div className="pt-6 flex flex-col gap-2">
-                 <Button variant="outline" className="w-full rounded-none h-10 uppercase tracking-widest text-[9px] font-medium border-border/30 hover:bg-secondary/20 transition-all">
-                   <Edit3 className="mr-2 h-3 w-3" /> Refine
-                 </Button>
-                 <Button 
-                   variant="ghost" 
-                   onClick={() => { onDelete(); setIsOpen(false); }}
-                   className="w-full rounded-none h-10 uppercase tracking-widest text-[9px] text-destructive/70 hover:text-destructive hover:bg-destructive/5 transition-all"
-                 >
-                   <Trash2 className="mr-2 h-3 w-3" /> Remove
-                 </Button>
-              </div>
-            </div>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
-  );
-}
+      {/* 2. Stats Dashboard */}
+      <StatsHeader />
 
-function GroupCard({ group, onDelete }: { group: any, onDelete: () => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <div className="group cursor-pointer relative aspect-[16/7] overflow-hidden bg-secondary/10 border border-border/10 flex items-end">
-          {group.image_url ? (
-            <img src={group.image_url} alt={group.name} className="absolute inset-0 object-cover w-full h-full transition-transform duration-1000 group-hover:scale-105" />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Layers className="h-8 w-8 text-muted-foreground/20 stroke-[0.5px]" />
-            </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
-          
-          <div className="relative z-10 p-6 w-full flex justify-between items-end">
-             <div className="space-y-1">
-               <span className="text-[8px] uppercase tracking-[0.3em] text-primary/80 font-medium">Curated Collection</span>
-               <h3 className="font-serif text-2xl italic tracking-tight text-foreground/90">{group.name}</h3>
-             </div>
-             <div className="h-8 w-8 rounded-full border border-border/30 backdrop-blur-md flex items-center justify-center group-hover:bg-primary/20 transition-all">
-               <Plus className="h-3 w-3 text-foreground/70" />
-             </div>
-          </div>
+      {/* 3. Controls & Filter */}
+      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-y border-border/10 py-4 flex flex-col md:flex-row gap-8 items-center justify-between">
+        <Tabs value={filter} onValueChange={setFilter} className="w-full md:w-auto">
+          <TabsList className="bg-muted/10 p-1 rounded-none border border-border/20">
+            <TabsTrigger 
+              value="a_la_carte" 
+              className="rounded-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[10px] uppercase font-black tracking-widest px-8 h-8"
+            >
+              <LayoutGrid size={12} className="mr-2" /> A La Carte
+            </TabsTrigger>
+            <TabsTrigger 
+              value="grouped_menu" 
+              className="rounded-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-[10px] uppercase font-black tracking-widest px-8 h-8"
+            >
+              <Layers size={12} className="mr-2" /> Curated Menus
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        <div className="relative w-full md:w-96 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3 w-3 opacity-20 group-focus-within:opacity-100 transition-opacity" />
+          <Input 
+            placeholder="FILTER BY NOMENCLATURE..." 
+            className="pl-10 rounded-none bg-muted/5 border-border/40 h-12 text-[10px] uppercase tracking-widest focus-visible:ring-0 focus-visible:border-primary transition-all"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-      </DialogTrigger>
-      
-      <DialogContent className="max-w-[700px] w-[95vw] p-0 border border-border/20 bg-background/95 backdrop-blur-3xl shadow-2xl rounded-none max-h-[90vh]">
-        <ScrollArea className="h-full max-h-[90vh]">
-          <div className="p-8 md:p-12 space-y-8">
-            <div className="text-center space-y-2">
-              <span className="text-[9px] uppercase tracking-[0.4em] text-primary/80 font-medium">The Collection</span>
-              <h2 className="text-3xl md:text-4xl font-serif italic text-foreground/90">{group.name}</h2>
-            </div>
-
-            {group.image_url && (
-              <div className="aspect-video w-full overflow-hidden border border-border/20">
-                <img src={group.image_url} alt={group.name} className="object-cover w-full h-full" />
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <Label className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground border-b border-border/10 pb-2 w-full flex">Philosophy</Label>
-              <p className="text-sm font-light leading-relaxed italic text-foreground/70 text-center px-4">
-                {group.description || "A masterfully curated sequence of flavors."}
-              </p>
-            </div>
-
-            <div className="pt-8 flex flex-col sm:flex-row gap-3 border-t border-border/10">
-               <Button variant="outline" className="flex-1 rounded-none h-10 uppercase tracking-widest text-[9px] font-medium border-border/30 hover:bg-secondary/20 transition-all">
-                 <Edit3 className="mr-2 h-3 w-3" /> Edit
-               </Button>
-               <Button 
-                 variant="ghost" 
-                 onClick={() => { onDelete(); setIsOpen(false); }}
-                 className="flex-1 rounded-none h-10 uppercase tracking-widest text-[9px] text-destructive/70 hover:bg-destructive/5 transition-all"
-               >
-                 <Trash2 className="mr-2 h-3 w-3" /> Disband
-               </Button>
-            </div>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function CreateItemDialog({ onRefresh }: { onRefresh: () => void }) {
-  const supabase = createClient();
-  const [isOpen, setIsOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setUploading(true);
-    const formData = new FormData(e.currentTarget);
-    
-    let image_url = "";
-    if (file) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `item_${Math.random()}.${fileExt}`;
-      const { data, error: uploadError } = await supabase.storage.from('dishpatch-media').upload(fileName, file);
-      
-      if (!uploadError && data) {
-        const { data: urlData } = supabase.storage.from('dishpatch-media').getPublicUrl(fileName);
-        image_url = urlData.publicUrl;
-      }
-    }
-
-    const { error } = await supabase.from('menu_items').insert({
-      name: formData.get('name'),
-      pax_count: parseInt(formData.get('pax') as string),
-      price: parseFloat(formData.get('price') as string),
-      ingredients: formData.get('ingredients'),
-      category: 'a-la-carte',
-      image_url,
-    });
-
-    setUploading(false);
-    if (error) {
-      toast.error("Failed to archive.");
-    } else {
-      toast.success("Masterpiece archived.");
-      setFile(null);
-      setIsOpen(false);
-      onRefresh();
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="rounded-none h-10 px-6 bg-foreground hover:bg-foreground/90 text-background uppercase tracking-widest text-[9px] font-medium transition-all shadow-lg">
-          <Plus className="mr-2 h-3 w-3" /> New Creation
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-[600px] w-[95vw] p-0 rounded-none border border-border/20 bg-background/95 backdrop-blur-2xl shadow-2xl max-h-[90vh]">
-        <ScrollArea className="h-full max-h-[90vh]">
-          <form onSubmit={handleSave} className="p-8 md:p-12">
-            <DialogHeader className="text-center mb-10 space-y-2">
-              <DialogTitle className="font-serif italic text-3xl text-foreground/90">Add to Library</DialogTitle>
-              <p className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground">Definition of Craft</p>
-            </DialogHeader>
-            
-            <div className="space-y-8">
-              <div className="grid gap-2">
-                <Label className="text-[9px] uppercase tracking-[0.3em] text-foreground/60">Nomenclature</Label>
-                <Input name="name" required className="rounded-none border-0 border-b border-border/30 bg-transparent px-0 h-10 focus-visible:ring-0 focus-visible:border-foreground transition-colors text-lg italic" placeholder="Signature Scallops..." />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-10">
-                 <div className="grid gap-2">
-                   <Label className="text-[9px] uppercase tracking-[0.3em] text-foreground/60">Pax</Label>
-                   <Input name="pax" type="number" required defaultValue="1" className="rounded-none border-0 border-b border-border/30 bg-transparent px-0 h-10 focus-visible:ring-0 focus-visible:border-foreground transition-colors text-lg" />
-                 </div>
-                 <div className="grid gap-2">
-                   <Label className="text-[9px] uppercase tracking-[0.3em] text-foreground/60">Price (₱)</Label>
-                   <Input name="price" type="number" step="0.01" required className="rounded-none border-0 border-b border-border/30 bg-transparent px-0 h-10 focus-visible:ring-0 focus-visible:border-foreground transition-colors text-lg" placeholder="0.00" />
-                 </div>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label className="text-[9px] uppercase tracking-[0.3em] text-foreground/60">Composition</Label>
-                <Textarea name="ingredients" required className="rounded-none border border-border/20 bg-secondary/5 min-h-[100px] focus-visible:ring-1 focus-visible:ring-foreground/30 p-4 italic font-light text-sm resize-none" placeholder="Describe the elements..." />
-              </div>
-
-              <div className="grid gap-2">
-                <Label className="text-[9px] uppercase tracking-[0.3em] text-foreground/60">Visual Representation</Label>
-                <div className="relative group border border-dashed border-border/30 p-8 text-center cursor-pointer hover:bg-secondary/10 transition-colors bg-secondary/5">
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  />
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <ImageIcon className="h-5 w-5 text-muted-foreground/40 font-thin group-hover:text-foreground/70 transition-colors" />
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-                      {file ? file.name : "Select Signature Image"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <DialogFooter className="mt-12 sm:justify-center">
-              <Button type="submit" disabled={uploading} className="w-full h-12 rounded-none uppercase tracking-widest text-[9px] font-medium bg-foreground text-background">
-                {uploading ? <Loader2 className="animate-spin h-3 w-3 mr-3" /> : <Save className="mr-3 h-3 w-3" />}
-                Archive Masterpiece
-              </Button>
-            </DialogFooter>
-          </form>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function CreateGroupDialog({ availableItems, onRefresh }: { availableItems: any[], onRefresh: () => void }) {
-  const supabase = createClient();
-  const [isOpen, setIsOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-
-  const toggleItem = (id: string) => {
-    setSelectedItems(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
-  const handleSaveGroup = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setUploading(true);
-    const formData = new FormData(e.currentTarget);
-    
-    let image_url = "";
-    if (file) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `group_${Math.random()}.${fileExt}`;
-      const { data, error: uploadError } = await supabase.storage.from('dishpatch-media').upload(fileName, file);
-      
-      if (!uploadError && data) {
-        const { data: urlData } = supabase.storage.from('dishpatch-media').getPublicUrl(fileName);
-        image_url = urlData.publicUrl;
-      }
-    }
-
-    const { error } = await supabase.from('culinary_groups').insert({
-      name: formData.get('name'),
-      description: formData.get('description'),
-      image_url,
-      // You can store selectedItems as a JSONB array or handle them in a junction table
-      item_ids: selectedItems 
-    });
-
-    setUploading(false);
-    if (error) {
-      toast.error("Failed to curate.");
-    } else {
-      toast.success("Collection curated.");
-      setFile(null);
-      setSelectedItems([]);
-      setIsOpen(false);
-      onRefresh();
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="rounded-none h-10 px-6 border-border/40 hover:bg-secondary/20 uppercase tracking-widest text-[9px] font-medium transition-all">
-          <Plus className="mr-2 h-3 w-3" /> New Collection
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-[600px] w-[95vw] p-0 rounded-none border border-border/20 bg-background/95 backdrop-blur-2xl shadow-2xl max-h-[90vh]">
-        <ScrollArea className="h-full max-h-[90vh]">
-          <form onSubmit={handleSaveGroup} className="p-8 md:p-12">
-            <DialogHeader className="text-center mb-10 space-y-2">
-              <DialogTitle className="font-serif italic text-3xl text-foreground/90">Curate Collection</DialogTitle>
-              <p className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground">Themed Narrative</p>
-            </DialogHeader>
-            
-            <div className="space-y-8">
-              <div className="grid gap-2">
-                <Label className="text-[9px] uppercase tracking-[0.3em] text-foreground/60">Collection Title</Label>
-                <Input name="name" required className="rounded-none border-0 border-b border-border/30 bg-transparent px-0 h-10 focus-visible:ring-0 focus-visible:border-foreground transition-colors text-lg italic" placeholder="Tides & Terroir..." />
-              </div>
-
-              <div className="space-y-4">
-                <Label className="text-[9px] uppercase tracking-[0.3em] text-foreground/60">Select Masterpieces</Label>
-                <div className="grid grid-cols-1 gap-2 max-h-[160px] overflow-y-auto p-3 border border-border/10 bg-secondary/5">
-                  {availableItems.length > 0 ? availableItems.map((item) => (
-                    <div key={item.id} className="flex items-center space-x-3 p-2 bg-background/50 hover:bg-background transition-colors border border-border/5">
-                      <Checkbox 
-                        id={item.id} 
-                        checked={selectedItems.includes(item.id)} 
-                        onCheckedChange={() => toggleItem(item.id)} 
-                      />
-                      <label htmlFor={item.id} className="text-xs italic cursor-pointer truncate flex-grow text-foreground/80">
-                        {item.name} <span className="text-[9px] text-muted-foreground not-italic opacity-60 ml-2">₱{Number(item.price).toLocaleString()}</span>
-                      </label>
-                    </div>
-                  )) : (
-                    <p className="text-[10px] italic text-muted-foreground p-2">No masterpieces found in the library.</p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label className="text-[9px] uppercase tracking-[0.3em] text-foreground/60">Narrative Arc</Label>
-                <Textarea name="description" required className="rounded-none border border-border/20 bg-secondary/5 min-h-[100px] focus-visible:ring-1 focus-visible:ring-foreground/30 p-4 italic font-light text-sm resize-none" placeholder="Describe the journey..." />
-              </div>
-
-              <div className="grid gap-2">
-                <Label className="text-[9px] uppercase tracking-[0.3em] text-foreground/60">Collection Cover</Label>
-                <div className="relative group border border-dashed border-border/30 p-8 text-center cursor-pointer hover:bg-secondary/10 transition-colors bg-secondary/5">
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  />
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <Layers className="h-5 w-5 text-muted-foreground/40 stroke-[1px] group-hover:text-foreground/70 transition-colors" />
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-                      {file ? file.name : "Select Cover Image"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <DialogFooter className="mt-12 sm:justify-center">
-              <Button type="submit" disabled={uploading} className="w-full h-12 rounded-none uppercase tracking-widest text-[9px] font-medium bg-foreground text-background">
-                {uploading ? <Loader2 className="animate-spin h-3 w-3 mr-3" /> : <Save className="mr-3 h-3 w-3" />}
-                Finalize Collection
-              </Button>
-            </DialogFooter>
-          </form>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function EmptyState({ icon, title, description }: any) {
-  return (
-    <div className="flex flex-col items-center justify-center py-32 border border-border/10 bg-secondary/5 rounded-none group hover:bg-secondary/10 transition-all duration-700">
-      <div className="mb-6 text-muted-foreground/30 group-hover:text-foreground/40 transition-colors transform group-hover:scale-110">
-        {icon}
       </div>
-      <h3 className="font-serif italic text-2xl text-foreground/60 mb-2">{title}</h3>
-      <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/70 font-light max-w-sm text-center">{description}</p>
+
+      {/* 4. The Grid Content */}
+      {filteredItems.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border/10 border border-border/10">
+          {filteredItems.map((item, index) => (
+            <div key={item.id} className="bg-background">
+                <CatalogCard 
+                    item={item} 
+                    index={index} 
+                    onEdit={() => {
+                        setSelectedItem(item);
+                        setEditorType(item.item_type);
+                    }}
+                    onDelete={async () => {
+                        if(confirm("Confirm deletion of this record?")) {
+                            await supabase.from("chef_catalog_items").delete().eq("id", item.id);
+                            fetchMenu();
+                        }
+                    }}
+                />
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Empty State */
+        <div className="py-40 flex flex-col items-center justify-center border border-dashed border-border/40 space-y-6">
+          <UtensilsCrossed size={40} strokeWidth={1} className="opacity-10" />
+          <div className="text-center space-y-2">
+            <h3 className="font-serif italic text-2xl opacity-40">No entries found in this section</h3>
+            <p className="text-[9px] uppercase tracking-[0.2em] opacity-30">Initiate a new creation to populate the manifesto</p>
+          </div>
+          <Button variant="outline" onClick={() => setIsPickerOpen(true)} className="rounded-none text-[10px] uppercase font-bold tracking-widest">
+            Begin Creation
+          </Button>
+        </div>
+      )}
+
+      {/* 5. Modals & Overlays */}
+      <CreationTypePicker 
+          isOpen={isPickerOpen} 
+          onClose={() => setIsPickerOpen(false)} 
+          onSelect={(type) => {
+              setEditorType(type);
+              setIsPickerOpen(false);
+          }}
+      />
+
+      <ALaCarteEditor 
+          isOpen={editorType === 'a_la_carte'} 
+          onClose={closeAll} 
+          item={selectedItem}
+          onSave={handleSave} 
+      />
+
+      <GroupedMenuEditor 
+          isOpen={editorType === 'grouped_menu'} 
+          onClose={closeAll} 
+          item={selectedItem}
+          onSave={handleSave} 
+      />
+
+      {/* 6. Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-10 py-5 flex items-center gap-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50 animate-in slide-in-from-bottom-10">
+            <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">{selectedIds.length} Entries Selected</span>
+                <span className="text-[8px] opacity-60 uppercase font-bold">Bulk Action Mode Active</span>
+            </div>
+            <div className="h-8 w-px bg-primary-foreground/20" />
+            <button onClick={handleBulkDelete} className="text-[10px] font-black uppercase tracking-widest hover:text-destructive-foreground transition-colors flex items-center gap-2 group">
+                <Trash2 size={14} className="group-hover:animate-bounce" /> Purge Records
+            </button>
+            <button onClick={() => setSelectedIds([])} className="text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity">Dismiss</button>
+        </div>
+      )}
     </div>
   );
 }

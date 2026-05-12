@@ -3,35 +3,37 @@
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { 
-  PhilippinePeso, TrendingUp, Calendar, Utensils,
-  Clock, CheckCircle2, ArrowRight, Inbox
+  PhilippinePeso, Calendar, Utensils,
+  Clock, CheckCircle2, Inbox, 
+  Briefcase, MessageSquare, ChevronRight
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export default function ChefDashboardPage() {
   const [data, setData] = useState<any>({ proposals: [], deals: [], requests: [], profile: null });
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState<string | null>(null);
-  const supabase = createClient();
+  
+  // Use useMemo to ensure the supabase client is stable across renders
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
 
   useEffect(() => {
     const loadDashboard = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) return router.push("/auth/login");
 
       const [prof, proposalsRes, dealsRes, requestsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         fetch(`/api/proposals?chef_id=${user.id}`).then(res => res.json()),
         fetch(`/api/deals?chef_id=${user.id}`).then(res => res.json()),
-        // Fetch open customer requests directly from the bookings table
-        supabase.from("bookings").select("*").eq("status", "open").order("created_at", { ascending: false })
+        supabase.from("bookings").select("*").eq("status", "open").is("chef_id", null)
       ]);
 
-      // Filter out dates that have passed to match the user-side expiration logic
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -49,18 +51,18 @@ export default function ChefDashboardPage() {
       });
       setIsLoading(false);
     };
-    loadDashboard();
-  }, [supabase]);
 
-  // Note: You might want to update this calculation later to pull directly 
-  // from profile.total_earned based on our new SQL structure.
+    loadDashboard();
+    // Dependency array is now stable
+  }, [supabase, router]);
+
   const earnings = data.deals.reduce((sum: number, d: any) => sum + (d.deposit_paid ? d.deposit_amount : 0), 0);
   const pendingCount = data.proposals.filter((p: any) => p.status === "pending").length;
-  const activeCount = data.deals.filter((d: any) => !d.final_paid).length;
-  const openRequestsCount = data.requests.length;
+  const activeDeals = data.deals.filter((d: any) => d.booking?.status !== 'completed');
 
-  const handleCompleteDeal = async (bookingId: string) => {
-    if (!confirm("Confirming completion will finalize the transaction and notify the client. Proceed?")) return;
+  const handleCompleteDeal = async (e: React.MouseEvent, bookingId: string) => {
+    e.stopPropagation();
+    if (!confirm("Confirming completion will finalize the transaction. Proceed?")) return;
     
     setIsCompleting(bookingId);
     const res = await fetch('/api/bookings/complete', {
@@ -71,158 +73,158 @@ export default function ChefDashboardPage() {
     if (res.ok) {
       window.location.reload(); 
     } else {
-      alert("There was an error completing the commission.");
       setIsCompleting(null);
     }
   };
 
-  if (isLoading) return <div className="p-10 flex justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent" /></div>;
+  if (isLoading) return (
+    <div className="h-screen flex items-center justify-center bg-background">
+      <div className="text-[10px] tracking-[0.5em] animate-pulse uppercase italic opacity-40 font-mono">
+        Accessing_Chef_Terminal
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <header>
-        <h1 className="text-4xl font-serif italic text-foreground">Welcome back, Chef {data.profile?.display_name?.split(' ')[0]}</h1>
-        <p className="text-muted-foreground mt-2 font-light italic">Here is your culinary performance overview.</p>
+    <div className="p-8 max-w-7xl mx-auto space-y-12 pb-24 font-sans">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border/10 pb-12">
+        <div>
+          <div className="flex items-center gap-3 opacity-40 mb-4">
+            <div className="h-[1px] w-6 bg-foreground" />
+            <p className="text-[8px] font-bold uppercase tracking-[0.4em]">Operational Overview</p>
+          </div>
+          <h1 className="text-5xl font-serif italic tracking-tighter">
+            Chef {data.profile?.display_name?.split(' ')[0]}
+          </h1>
+        </div>
       </header>
 
-      {/* STATS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-primary text-primary-foreground border-none shadow-lg">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] uppercase tracking-[0.2em] opacity-80">Total Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold flex items-center gap-1">
-              <PhilippinePeso className="h-6 w-6" />
-              {earnings.toLocaleString()}
-            </div>
-            <p className="text-[10px] mt-2 opacity-70 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" /> +12% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* NEW CARD: Open Requests */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-              <Inbox className="h-3 w-3" /> New Requests
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{openRequestsCount}</div>
-            <p className="text-[10px] mt-2 text-primary font-bold italic">Available commissions</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Active Deals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{activeCount}</div>
-            <p className="text-[10px] mt-2 text-muted-foreground italic">Currently in progress</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Pending Proposals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{pendingCount}</div>
-            <p className="text-[10px] mt-2 text-muted-foreground italic">Awaiting client response</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Upcoming Sessions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">4</div>
-            <p className="text-[10px] mt-2 text-muted-foreground italic">Scheduled this week</p>
-          </CardContent>
-        </Card>
+      {/* INTERACTIVE STATS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+            label="Gross Earnings" 
+            value={`₱${earnings.toLocaleString()}`} 
+            icon={<PhilippinePeso className="h-4 w-4" />}
+            href="/dashboard/earnings"
+            subtext="Performance Data"
+            variant="primary"
+        />
+        <StatCard 
+            label="Marketplace" 
+            value={data.requests.length} 
+            icon={<Inbox className="h-4 w-4" />}
+            href="/requests"
+            subtext="Available Missions"
+        />
+        <StatCard 
+            label="Deals" 
+            value={activeDeals.length} 
+            icon={<Briefcase className="h-4 w-4" />}
+            href="/dashboard/deals"
+            subtext="Active Logic"
+        />
+        <StatCard 
+            label="Proposals" 
+            value={pendingCount} 
+            icon={<MessageSquare className="h-4 w-4" />}
+            href="/proposals"
+            subtext="Negotiations"
+        />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* RECENT ACTIVITY */}
-        <Card className="lg:col-span-2 border-border bg-card/50 backdrop-blur">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="font-serif italic text-xl">Active Commissions</CardTitle>
-            <Link href="/requests">
-              <Button variant="ghost" size="sm" className="text-xs uppercase tracking-widest text-primary">
-                View All <ArrowRight className="ml-2 h-3 w-3" />
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {data.deals.slice(0, 3).map((deal: any) => (
-              <div key={deal.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-background hover:bg-muted/30 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <Calendar className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold uppercase tracking-tight">{deal.booking.title}</p>
-                    <p className="text-[10px] text-muted-foreground italic">{deal.booking.event_date}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  {deal.booking.payment_status === 'paid' && !deal.booking.chef_confirmed_completion ? (
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleCompleteDeal(deal.booking.id)}
-                      disabled={isCompleting === deal.booking.id}
-                      className="h-7 text-[9px] uppercase tracking-widest rounded-sm bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      {isCompleting === deal.booking.id ? (
-                        'Processing...'
-                      ) : (
-                        <>
-                          <CheckCircle2 className="mr-1.5 h-3 w-3" /> Finish & Collect
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <span className="text-[10px] bg-muted px-2 py-1 rounded font-bold uppercase tracking-widest text-muted-foreground">
-                      {deal.booking.chef_confirmed_completion ? 'Completed' : 'Awaiting Details'}
-                    </span>
-                  )}
-                </div>
+      <div className="grid lg:grid-cols-3 gap-12">
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="font-serif italic text-2xl">Active Commissions</h2>
+          <div className="space-y-4">
+            {activeDeals.length === 0 ? (
+              <div className="py-20 border border-dashed border-border/40 text-center flex flex-col items-center">
+                <p className="font-serif italic text-muted-foreground opacity-60">No active culinary deployments.</p>
+                <Link href="/requests" className="text-[10px] uppercase font-bold tracking-widest text-primary mt-4 hover:underline">
+                    Scan Marketplace →
+                </Link>
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            ) : (
+              activeDeals.slice(0, 5).map((deal: any) => (
+                <div 
+                  key={deal.id} 
+                  onClick={() => router.push(`/deal/${deal.booking.id}`)}
+                  className="group flex items-center justify-between p-6 border border-border/40 bg-card/30 hover:border-primary/40 hover:bg-card/60 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-6">
+                    <div className="h-12 w-12 bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <Utensils className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-tight">{deal.booking.title}</p>
+                      <p className="text-[9px] uppercase tracking-widest opacity-40 mt-1">{deal.booking.event_date || "DATE TBD"}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
-        {/* QUICK ACTIONS */}
+        {/* OPERATIONAL CONTROLS */}
         <div className="space-y-4">
-            <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground px-2">Quick Actions</h4>
-            <Link href="/requests" className="block w-full">
-                <Button className="w-full justify-start h-16 rounded-2xl bg-card border border-border text-foreground hover:bg-muted group">
-                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
-                        <Clock className="h-5 w-5 text-blue-500" />
-                    </div>
-                    <div className="text-left">
-                        <p className="text-sm font-bold">Manage Requests</p>
-                        <p className="text-[10px] text-muted-foreground italic">Respond to new clients</p>
-                    </div>
-                </Button>
-            </Link>
-            <Link href="/menu" className="block w-full">
-                <Button className="w-full justify-start h-16 rounded-2xl bg-card border border-border text-foreground hover:bg-muted group">
-                    <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
-                        <Utensils className="h-5 w-5 text-orange-500" />
-                    </div>
-                    <div className="text-left">
-                        <p className="text-sm font-bold">Update Menu</p>
-                        <p className="text-[10px] text-muted-foreground italic">Refresh your offerings</p>
-                    </div>
-                </Button>
-            </Link>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/50 px-2">Operational Controls</h4>
+            <div className="grid gap-3">
+                <QuickActionButton 
+                    title="Marketplace" 
+                    desc="Respond to new briefs" 
+                    icon={<Clock className="text-blue-500" />} 
+                    href="/requests" 
+                />
+                <QuickActionButton 
+                    title="Manifesto" 
+                    desc="Refine Chef Profile" 
+                    icon={<Utensils className="text-orange-500" />} 
+                    href="/menu"
+                />
+            </div>
         </div>
       </div>
     </div>
   );
+}
+
+function StatCard({ label, value, icon, href, subtext, variant = "default" }: any) {
+    return (
+        <Link href={href} className="group">
+            <Card className={cn(
+                "rounded-none border-border/40 shadow-none transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl",
+                variant === "primary" ? "bg-primary text-primary-foreground border-none" : "bg-card group-hover:border-primary/40"
+            )}>
+                <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+                    <CardTitle className={cn("text-[9px] uppercase tracking-[0.2em]", variant === "primary" ? "opacity-70" : "text-muted-foreground")}>
+                        {label}
+                    </CardTitle>
+                    <div className={cn("opacity-40", variant === "primary" ? "text-white" : "text-primary")}>{icon}</div>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-3xl font-serif italic tracking-tighter">{value}</div>
+                    <p className={cn("text-[9px] mt-2 font-bold uppercase tracking-widest", variant === "primary" ? "opacity-60" : "text-primary/60")}>
+                        {subtext}
+                    </p>
+                </CardContent>
+            </Card>
+        </Link>
+    );
+}
+
+function QuickActionButton({ title, desc, icon, href }: any) {
+    return (
+        <Link href={href} className="group">
+            <div className="flex items-center p-6 border border-border/40 bg-card/20 hover:bg-muted hover:border-primary/40 transition-all duration-300">
+                <div className="h-10 w-10 bg-background border border-border/40 flex items-center justify-center mr-6 group-hover:scale-110 transition-transform">
+                    {icon}
+                </div>
+                <div className="text-left">
+                    <p className="text-xs font-black uppercase tracking-widest">{title}</p>
+                    <p className="text-[10px] text-muted-foreground italic mt-0.5">{desc}</p>
+                </div>
+            </div>
+        </Link>
+    );
 }

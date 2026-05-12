@@ -8,13 +8,15 @@ import {
   AlertCircle, 
   CheckCircle2, 
   ArrowRight,
-  Sun, 
-  Moon, 
   CalendarDays, 
   UserCircle2, 
   Trash2, 
   Edit3,
-  Lock
+  Lock,
+  Archive,
+  X,
+  Ghost,
+  History
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useMemo } from 'react'
@@ -24,13 +26,7 @@ import { format, parseISO, isBefore, startOfDay } from 'date-fns'
 
 import BookingDossierPanel from '@/components/booking-dossier-panel'
 
-type BookingStatus =
-  | 'all'
-  | 'open'
-  | 'active'
-  | 'completed'
-  | 'cancelled'
-  | 'expired';
+type BookingStatus = 'all' | 'open' | 'active' | 'completed' | 'cancelled' | 'expired';
 
 type ModalConfig = {
   title: string;
@@ -43,11 +39,13 @@ type ModalConfig = {
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [userBookings, setUserBookings] = useState<any[]>([])
+  const [archivedBookings, setArchivedBookings] = useState<any[]>([])
   const [selectedBooking, setSelectedBooking] = useState<any | null>(null)
   const [activeTab, setActiveTab] = useState<BookingStatus>('all')
   const [modal, setModal] = useState<ModalConfig>(null)
   const [notification, setNotification] = useState<any | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false)
   
   const router = useRouter()
   const supabase = createClient()
@@ -59,27 +57,43 @@ export default function DashboardPage() {
         .select('*')
         .eq('user_id', uid)
         .order('created_at', { ascending: false })
-      
+        
       if (fetchError) throw fetchError
 
       const today = startOfDay(new Date());
 
       const enriched = await Promise.all((bookings || []).map(async (booking) => {
-        let status = booking.status;
+        let currentStatus = booking.status;
+
+        // 1. IMPROVED EXPIRATION CHECK
+        // Include any status that represents a booking not yet "confirmed" or "completed"
+        const expirationalStatuses = ['open', 'negotiating', 'pending'];
         
-        // Safety Precaution: Logical check for Expired state
-        if (status === 'open' && booking.event_date && isBefore(parseISO(booking.event_date), today)) {
-          status = 'expired';
+        if (expirationalStatuses.includes(currentStatus?.toLowerCase()) && booking.event_date) {
+          const eventDate = parseISO(booking.event_date);
+          
+          if (isBefore(eventDate, today)) {
+            currentStatus = 'expired';
+          }
         }
 
-        if (booking.chef_id && !['pending', 'cancelled', 'expired'].includes(status)) {
-          const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', booking.chef_id).single()
-          return { ...booking, artisan: profile, status };
+        // 2. Fetch artisan profile if assigned
+        // Note: We check if it's NOT expired here so we don't waste a query on dead records
+        if (booking.chef_id && !['pending', 'cancelled', 'expired'].includes(currentStatus)) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('id', booking.chef_id)
+            .single();
+              
+          return { ...booking, artisan: profile, status: currentStatus };
         }
-        return { ...booking, status };
+
+        return { ...booking, status: currentStatus };
       }))
 
-      setUserBookings(enriched)
+      setUserBookings(enriched.filter(b => !b.client_purged))
+      setArchivedBookings(enriched.filter(b => b.client_purged))
     } catch (err: any) {
       console.error("Studio Sync Error:", err)
     } finally {
@@ -97,74 +111,55 @@ export default function DashboardPage() {
     loadDashboard()
   }, [router, supabase])
 
-  useEffect(() => {
-    if (!userId) return
-    const channel = supabase.channel(`public:bookings`)
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'bookings', 
-        filter: `user_id=eq.${userId}` 
-      }, async (payload) => {
-        if (payload.new.status === 'assigned' && payload.old.status !== 'assigned') {
-          const { data: chefData } = await supabase.from('profiles').select('display_name').eq('id', payload.new.chef_id).single()
-          const { data: conv } = await supabase.from('conversations').select('id').eq('chef_id', payload.new.chef_id).eq('client_id', userId).single()
-          
-          setNotification({ 
-            chefName: chefData?.display_name || "An Artisan", 
-            bookingTitle: payload.new.title, 
-            chatId: conv?.id 
-          })
-          
-          setTimeout(() => setNotification(null), 8000)
-          fetchBookings(userId)
-        }
-      }).subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [userId, supabase])
-
   const filteredBookings = useMemo(() => {
     if (activeTab === 'all') return userBookings;
-    if (activeTab === 'active') {
-      return userBookings.filter(b =>
-        ['confirmed', 'in_progress'].includes(b.status)
-      );
-    }
+    
+    // If user clicks the 'expired' tab, show items where status was locally set to 'expired'
     return userBookings.filter(b => b.status === activeTab);
   }, [userBookings, activeTab]);
 
   const getCount = (tab: BookingStatus) => {
     if (tab === 'all') return userBookings.length;
     if (tab === 'active') {
-      return userBookings.filter(b =>
-        ['confirmed', 'in_progress'].includes(b.status)
-      ).length;
+      return userBookings.filter(b => ['confirmed', 'in_progress'].includes(b.status)).length;
     } 
     return userBookings.filter(b => b.status === tab).length;
   };
 
   const handlePurge = async (bookingId: string) => {
-    const { error } = await supabase.from('bookings').delete().eq('id', bookingId)
-    if (!error) {
-      setUserBookings(prev => prev.filter(b => b.id !== bookingId))
-      setModal(null)
-      if (selectedBooking?.id === bookingId) setSelectedBooking(null)
+    const bookingToPurge = userBookings.find(b => b.id === bookingId);
+    
+    const { error } = await supabase
+      .from('bookings')
+      .update({ 
+        client_purged: true,
+        notes: `${bookingToPurge?.notes || ""}\n\n[SYSTEM: Client purged this record on ${new Date().toISOString()}]` 
+      })
+      .eq('id', bookingId);
+
+    if (error) {
+      console.error("Failed to purge:", error);
+      setModal({ title: "Purge Failed", message: error.message || "Database policy restriction.", type: 'error' });
+      return;
     }
+
+    if (bookingToPurge) {
+      setUserBookings(prev => prev.filter(b => b.id !== bookingId));
+      setArchivedBookings(prev => [{ ...bookingToPurge, client_purged: true }, ...prev]);
+    }
+    
+    setModal(null);
+    if (selectedBooking?.id === bookingId) setSelectedBooking(null);
   }
 
   const handleEditAttempt = (e: React.MouseEvent, booking: any) => {
     e.stopPropagation()
     if (['completed', 'cancelled', 'expired'].includes(booking.status)) {
-      setModal({ 
-        title: "Modification Restricted", 
-        message: `This commission is marked as ${booking.status}. Changes are no longer permitted.`, 
-        type: 'error' 
-      });
+      setModal({ title: "Modification Restricted", message: `Commission is ${booking.status}.`, type: 'error' });
       return;
     }
-
     if (booking.edit_count >= 2) {
-      setModal({ title: "Revision Limit", message: "Security clearance limit reached (2/2).", type: 'error' })
+      setModal({ title: "Revision Limit", message: "Security clearance limit reached.", type: 'error' })
       return
     }
     router.push(`/booking/edit/${booking.id}`)
@@ -187,6 +182,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/10 font-sans">
       
+      {/* Existing Notifications & Nav stay the same... */}
       <AnimatePresence>
         {notification && (
           <motion.div 
@@ -213,13 +209,27 @@ export default function DashboardPage() {
         <div className="flex items-center gap-4 cursor-pointer group" onClick={() => router.push('/')}>
           <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Dashboard</span>
         </div>
-        <Button onClick={() => router.push('/booking/new')} size="sm" className="rounded-none h-9 px-6 text-[9px] uppercase tracking-[0.2em] font-bold">
-          <Plus className="mr-2 h-3 w-3" /> New Commission
-        </Button>
+        
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={() => setIsArchiveOpen(true)}
+            className="relative p-2 opacity-40 hover:opacity-100 transition-opacity group"
+          >
+            {archivedBookings.length > 0 && (
+              <div className="text-[7px] absolute top-0 right-0 bg-primary text-primary-foreground w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
+                {archivedBookings.length}
+              </div>
+            )}
+            <Archive className="h-4 w-4" />
+          </button>
+          <Button onClick={() => router.push('/booking/new')} size="sm" className="rounded-none h-9 px-6 text-[9px] uppercase tracking-[0.2em] font-bold">
+            <Plus className="mr-2 h-3 w-3" /> New Commission
+          </Button>
+        </div>
       </nav>
 
       <main className="max-w-6xl mx-auto px-8 py-12">
-        <header className="mb-12">
+        <header className="mb-12 sticky">
           <div className="flex items-center gap-3 opacity-40 mb-4">
             <div className="h-[1px] w-6 bg-foreground" />
             <p className="text-[8px] font-bold uppercase tracking-[0.4em]">Private Client Portal</p>
@@ -254,7 +264,7 @@ export default function DashboardPage() {
               return (
                 <motion.div 
                   key={booking.id} 
-                  variants={cardVariants} initial="initial" animate="animate" exit="exit" whileHover="hover"
+                  variants={cardVariants} initial="initial" animate="animate" exit="exit" whileHover={!isExpired ? "hover" : ""}
                   onClick={() => !isExpired && setSelectedBooking(booking)}
                   className={cn(
                     "group bg-card border border-border/40 p-10 flex flex-col justify-between aspect-[16/9] relative overflow-hidden transition-all",
@@ -262,91 +272,71 @@ export default function DashboardPage() {
                     ['cancelled', 'completed'].includes(booking.status) && "opacity-50 grayscale-[0.4]"
                   )}
                 >
-                  {/* EXPIRED LOCK OVERLAY */}
+                  {/* EXPIRED OVERLAY: BLUR + PURGE ACTION */}
                   <AnimatePresence>
                     {isExpired && (
                       <motion.div 
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: 1 }}
-                        className="absolute inset-0 z-20 bg-destructive/10 backdrop-blur-[2px] flex flex-col items-center justify-center p-8 text-center"
+                        className="absolute inset-0 z-50 bg-background/20 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-t from-destructive/40 via-transparent to-transparent" />
-                        <Lock className="h-6 w-6 text-destructive mb-4 relative z-10" />
-                        <p className="text-[11px] font-serif italic text-destructive-foreground font-bold leading-relaxed relative z-10 mb-6">
-                          Your appointment for {booking.event_date ? format(parseISO(booking.event_date), 'MMM dd') : 'this day'} has expired. <br />
-                          Would you like to delete this entry?
-                        </p>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handlePurge(booking.id); }}
-                          className="relative z-10 bg-destructive text-white px-8 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] hover:bg-destructive/80 transition-colors shadow-lg"
-                        >
-                          Purge Record
-                        </button>
+                        <div className="bg-destructive/10 border border-destructive/20 p-8 flex flex-col items-center max-w-xs shadow-2xl">
+                          <History className="h-6 w-6 text-destructive mb-4 animate-pulse" />
+                          <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-destructive mb-2">Record Expired</h4>
+                          <p className="text-[11px] font-serif italic text-muted-foreground mb-6 leading-relaxed">
+                            This appointment date has passed. To clear your workspace, you must purge this record.
+                          </p>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handlePurge(booking.id); }}
+                            className="bg-destructive text-white px-8 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] hover:bg-destructive/80 transition-colors shadow-lg flex items-center gap-2"
+                          >
+                            <Trash2 className="h-3 w-3" /> Purge Record
+                          </button>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  <div className="flex justify-between items-start relative z-10">
-                    <div className={cn(
-                      "text-[8px] font-bold uppercase tracking-widest px-3 py-1 border",
-                      ['confirmed', 'assigned'].includes(booking.status)
-                        ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5" 
-                        : "text-primary border-primary/20 bg-primary/5",
-                      isExpired && "text-destructive border-destructive/20 bg-destructive/5"
-                    )}>
-                      {booking.status.replace(/_/g, ' ')}
-                    </div>
-                    {!isExpired && <ArrowUpRight className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-all text-primary" />}
-                  </div>
-
-                  <div className="space-y-3 relative z-10">
-                    <h3 className="text-3xl font-serif leading-tight tracking-tight">
-                      {booking.title || "Untitled Commission"}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
-                      <div className="flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4 text-primary/40" />
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-                          {booking.event_date ? format(parseISO(booking.event_date), 'MMM dd, yyyy') : 'TBD'}
-                        </p>
+                  {/* UNDERLYING CONTENT (Blurred/Grayscale if Expired) */}
+                  <div className={cn("flex flex-col h-full justify-between", isExpired && "blur-[2px] grayscale opacity-30")}>
+                    <div className="flex justify-between items-start relative z-10">
+                      <div className={cn(
+                        "text-[8px] font-bold uppercase tracking-widest px-3 py-1 border",
+                        ['confirmed', 'assigned'].includes(booking.status)
+                          ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5" 
+                          : "text-primary border-primary/20 bg-primary/5",
+                      )}>
+                        {booking.status.replace(/_/g, ' ')}
                       </div>
+                      <ArrowUpRight className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-all text-primary" />
                     </div>
-                  </div>
 
-                  <div className="pt-8 flex items-center justify-between border-t border-border/10 relative z-10">
-                    <div className="flex items-center gap-4">
-                      {booking.artisan ? (
+                    <div className="space-y-3 relative z-10">
+                      <h3 className="text-3xl font-serif leading-tight tracking-tight">
+                        {booking.title || "Untitled Commission"}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
                         <div className="flex items-center gap-2">
-                          <UserCircle2 className="h-4 w-4 text-primary" />
-                          <span className="text-[10px] italic text-foreground/80 font-serif">Artisan: {booking.artisan.display_name}</span>
+                          <CalendarDays className="h-4 w-4 text-primary/40" />
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+                            {booking.event_date ? format(parseISO(booking.event_date), 'MMM dd, yyyy') : 'TBD'}
+                          </p>
                         </div>
-                      ) : (
-                        <span className="text-[9px] font-mono opacity-30 uppercase tracking-[0.2em]">REV_{booking.edit_count || 0}/02</span>
-                      )}
-                    </div>
-                    
-                    {!['completed', 'cancelled', 'expired'].includes(booking.status) && (
-                      <div className="flex gap-6 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        <button onClick={(e) => handleEditAttempt(e, booking)} className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest hover:text-primary transition-colors">
-                          <Edit3 className="h-3.5 w-3.5" /> Modify
-                        </button>
-                        <button 
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            setModal({ 
-                              title: "Confirm Withdrawal", 
-                              message: "Are you certain you wish to withdraw this commission?", 
-                              type: 'warning', 
-                              confirmLabel: "Withdraw", 
-                              onConfirm: () => handlePurge(booking.id) 
-                            }); 
-                          }} 
-                          className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest hover:text-destructive transition-colors"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Purge
-                        </button>
                       </div>
-                    )}
+                    </div>
+
+                    <div className="pt-8 flex items-center justify-between border-t border-border/10 relative z-10">
+                      <div className="flex items-center gap-4">
+                        {booking.artisan ? (
+                          <div className="flex items-center gap-2">
+                            <UserCircle2 className="h-4 w-4 text-primary" />
+                            <span className="text-[10px] italic text-foreground/80 font-serif">Artisan: {booking.artisan.display_name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[9px] font-mono opacity-30 uppercase tracking-[0.2em]">REV_{booking.edit_count || 0}/02</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -355,13 +345,78 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      <BookingDossierPanel 
-        booking={selectedBooking}
-        onClose={() => setSelectedBooking(null)} onEdit={function (booking: any): void {
-          throw new Error('Function not implemented.')
-        } } onDelete={function (booking: any): void {
-          throw new Error('Function not implemented.')
-        } }      />
+      {/* Rest of the components (Archive, Dossier Panel, Modals) remain the same... */}
+      {/* GHOST ARCHIVE PANEL */}
+      <AnimatePresence>
+        {isArchiveOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsArchiveOpen(false)}
+              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100]" 
+            />
+            <motion.div 
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-card border-l border-border z-[101] p-12 overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-12">
+                <div>
+                  <h3 className="text-2xl font-serif italic">Ghost Archive</h3>
+                  <p className="text-[9px] uppercase tracking-widest opacity-40 mt-1">Read-Only Dossiers</p>
+                </div>
+                <button onClick={() => setIsArchiveOpen(false)} className="p-2 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 opacity-40" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {archivedBookings.length === 0 ? (
+                  <div className="py-20 text-center opacity-20">
+                    <Ghost className="h-12 w-12 mx-auto mb-4" />
+                    <p className="text-[10px] uppercase tracking-widest">No purged records</p>
+                  </div>
+                ) : (
+                  archivedBookings.map((booking) => (
+                    <div 
+                      key={booking.id}
+                      className="p-8 border border-border/40 bg-muted/5 opacity-60 grayscale hover:grayscale-0 transition-all group relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <Lock className="h-3 w-3 opacity-30" />
+                        <span className="text-[8px] font-mono opacity-30">ARCH_{booking.id.slice(0,8).toUpperCase()}</span>
+                      </div>
+                      <h4 className="text-xl font-serif italic mb-1">{booking.title}</h4>
+                      <p className="text-[10px] opacity-40 mb-6">
+                        {booking.event_date ? format(parseISO(booking.event_date), 'MMMM dd, yyyy') : 'No Date Set'}
+                      </p>
+                      
+                      <div className="pt-4 border-t border-border/10 flex justify-between items-center">
+                        <span className="text-[8px] font-bold uppercase tracking-widest opacity-40">{booking.status}</span>
+                        <button 
+                          onClick={() => { setSelectedBooking(booking); setIsArchiveOpen(false); }}
+                          className="text-[9px] font-black uppercase tracking-widest hover:text-primary transition-colors"
+                        >
+                          View Brief
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {selectedBooking && (
+        <BookingDossierPanel 
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)} 
+          onEdit={() => router.push(`/booking/edit/${selectedBooking.id}`)} 
+          onDelete={() => handlePurge(selectedBooking.id)} 
+        />
+      )}
 
       <AnimatePresence>
         {modal && (
