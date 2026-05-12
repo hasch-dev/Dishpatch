@@ -1,35 +1,23 @@
 "use client";
-import { Clock, Users2 } from "lucide-react";
+import { RangeCalendar } from "@/components/booking/shared/range-calendar";
 
-export default function Step3Timeline({ data, update }: any) {
+export default function Step3Schedule({ data, update }: any) {
   return (
-    <div className="space-y-12 animate-in fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-        <div className="space-y-4">
-          <label className="text-[10px] uppercase tracking-widest font-bold text-primary flex items-center gap-2"><Clock size={12}/> Preferred Time</label>
-          <div className="flex border border-border">
-            {["Noon", "Evening"].map(t => (
-              <button key={t} onClick={() => update({ time: t })} className={`flex-1 py-4 text-[10px] uppercase tracking-widest font-bold ${data.time === t ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                {t}
-              </button>
-            ))}
-          </div>
+    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12 animate-in fade-in items-start">
+      <div className="lg:col-span-1 space-y-8">
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-[#D4AF37] font-bold">The Timeline</p>
+          <h3 className="text-3xl font-serif italic">When should the experience begin?</h3>
         </div>
-        <div className="space-y-4">
-          <label className="text-[10px] uppercase tracking-widest font-bold opacity-50">Estimated Duration</label>
-          <input className="w-full bg-transparent border-b border-border py-4 text-xl outline-none" placeholder="e.g. 4 Hours" value={data.duration} onChange={e => update({ duration: e.target.value })} />
-        </div>
-      </div>
-      <div className="space-y-8">
-        <label className="text-[10px] uppercase tracking-widest font-bold text-primary flex items-center gap-2"><Users2 size={12}/> Guest Composition</label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {["Adults", "Teens", "Seniors", "Children"].map(cat => (
-            <div key={cat} className="space-y-2">
-              <span className="text-[9px] uppercase tracking-widest opacity-40">{cat}</span>
-              <input type="number" className="w-full bg-transparent border-b border-border py-2 text-xl outline-none" value={data.pax[cat.toLowerCase()] || 0} onChange={e => update({ pax: { ...data.pax, [cat.toLowerCase()]: e.target.value } })} />
-            </div>
+        <div className="flex border border-border p-1 bg-muted/5">
+          {["Noon", "Evening"].map(t => (
+            <button key={t} onClick={() => update({ time: t })} className={`flex-1 py-4 text-[9px] uppercase tracking-widest font-bold transition-all ${data.time === t ? "bg-[#D4AF37] text-black" : "opacity-40 hover:opacity-100"}`}>{t}</button>
           ))}
         </div>
+        <p className="text-[10px] leading-relaxed opacity-40 italic">Note: Dishpatch requires a 1-month lead time for all private bookings.</p>
+      </div>
+      <div className="lg:col-span-2 flex justify-center lg:justify-end">
+        <RangeCalendar startDate={data.eventDate} endDate={data.eventEndDate} onChange={(d: any) => update({ eventDate: d.startDate, eventEndDate: d.endDate })} />
       </div>
     </div>
   );

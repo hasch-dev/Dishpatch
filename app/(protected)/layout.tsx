@@ -27,15 +27,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-        <SidebarProvider>
-          {/* Main Container */}
-          <div className="flex min-h-screen w-full">
-            <AppSidebar />
-            <main className="flex-1 overflow-auto">
-              {children}
-            </main>
-          </div>
-          {process.env.NODE_ENV === 'production' && <Analytics />}
-        </SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
+      {/* Main Container */}
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
+      {process.env.NODE_ENV === 'production' && <Analytics />}
+    </SidebarProvider>
   )
 }

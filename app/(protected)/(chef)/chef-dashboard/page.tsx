@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { 
   PhilippinePeso, TrendingUp, Calendar, Utensils,
-  Clock, CheckCircle2, ArrowRight 
+  Clock, CheckCircle2, ArrowRight, Inbox
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ChefDashboardPage() {
-  const [data, setData] = useState<any>({ proposals: [], deals: [], profile: null });
+  const [data, setData] = useState<any>({ proposals: [], deals: [], requests: [], profile: null });
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState<string | null>(null);
   const supabase = createClient();
@@ -23,16 +23,29 @@ export default function ChefDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [prof, proposalsRes, dealsRes] = await Promise.all([
+      const [prof, proposalsRes, dealsRes, requestsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         fetch(`/api/proposals?chef_id=${user.id}`).then(res => res.json()),
-        fetch(`/api/deals?chef_id=${user.id}`).then(res => res.json())
+        fetch(`/api/deals?chef_id=${user.id}`).then(res => res.json()),
+        // Fetch open customer requests directly from the bookings table
+        supabase.from("bookings").select("*").eq("status", "open").order("created_at", { ascending: false })
       ]);
+
+      // Filter out dates that have passed to match the user-side expiration logic
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const validRequests = (requestsRes.data || []).filter((req: any) => {
+        if (!req.event_date) return true;
+        const eventDate = new Date(req.event_date);
+        return eventDate >= today; 
+      });
 
       setData({
         profile: prof.data,
         proposals: proposalsRes.data || [],
-        deals: dealsRes.data || []
+        deals: dealsRes.data || [],
+        requests: validRequests
       });
       setIsLoading(false);
     };
@@ -44,6 +57,7 @@ export default function ChefDashboardPage() {
   const earnings = data.deals.reduce((sum: number, d: any) => sum + (d.deposit_paid ? d.deposit_amount : 0), 0);
   const pendingCount = data.proposals.filter((p: any) => p.status === "pending").length;
   const activeCount = data.deals.filter((d: any) => !d.final_paid).length;
+  const openRequestsCount = data.requests.length;
 
   const handleCompleteDeal = async (bookingId: string) => {
     if (!confirm("Confirming completion will finalize the transaction and notify the client. Proceed?")) return;
@@ -72,7 +86,7 @@ export default function ChefDashboardPage() {
       </header>
 
       {/* STATS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-primary text-primary-foreground border-none shadow-lg">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] uppercase tracking-[0.2em] opacity-80">Total Revenue</CardTitle>
@@ -88,13 +102,26 @@ export default function ChefDashboardPage() {
           </CardContent>
         </Card>
 
+        {/* NEW CARD: Open Requests */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+              <Inbox className="h-3 w-3" /> New Requests
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">{openRequestsCount}</div>
+            <p className="text-[10px] mt-2 text-primary font-bold italic">Available commissions</p>
+          </CardContent>
+        </Card>
+
         <Card className="bg-card border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Active Deals</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{activeCount}</div>
-            <p className="text-[10px] mt-2 text-primary font-bold italic">Currently in progress</p>
+            <p className="text-[10px] mt-2 text-muted-foreground italic">Currently in progress</p>
           </CardContent>
         </Card>
 

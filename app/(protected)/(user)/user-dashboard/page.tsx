@@ -24,7 +24,13 @@ import { format, parseISO, isBefore, startOfDay } from 'date-fns'
 
 import BookingDossierPanel from '@/components/booking-dossier-panel'
 
-type BookingStatus = 'all' | 'pending' | 'active' | 'completed' | 'cancelled' | 'expired';
+type BookingStatus =
+  | 'all'
+  | 'open'
+  | 'active'
+  | 'completed'
+  | 'cancelled'
+  | 'expired';
 
 type ModalConfig = {
   title: string;
@@ -62,7 +68,7 @@ export default function DashboardPage() {
         let status = booking.status;
         
         // Safety Precaution: Logical check for Expired state
-        if (status === 'pending' && booking.event_date && isBefore(parseISO(booking.event_date), today)) {
+        if (status === 'open' && booking.event_date && isBefore(parseISO(booking.event_date), today)) {
           status = 'expired';
         }
 
@@ -119,13 +125,21 @@ export default function DashboardPage() {
 
   const filteredBookings = useMemo(() => {
     if (activeTab === 'all') return userBookings;
-    if (activeTab === 'active') return userBookings.filter(b => ['assigned', 'confirmed'].includes(b.status));
+    if (activeTab === 'active') {
+      return userBookings.filter(b =>
+        ['confirmed', 'in_progress'].includes(b.status)
+      );
+    }
     return userBookings.filter(b => b.status === activeTab);
   }, [userBookings, activeTab]);
 
   const getCount = (tab: BookingStatus) => {
     if (tab === 'all') return userBookings.length;
-    if (tab === 'active') return userBookings.filter(b => ['assigned', 'confirmed'].includes(b.status)).length;
+    if (tab === 'active') {
+      return userBookings.filter(b =>
+        ['confirmed', 'in_progress'].includes(b.status)
+      ).length;
+    } 
     return userBookings.filter(b => b.status === tab).length;
   };
 
@@ -213,7 +227,7 @@ export default function DashboardPage() {
           <h2 className="text-6xl font-serif tracking-tighter italic leading-none mb-12">Studio Archive</h2>
           
           <div className="flex flex-wrap items-center gap-x-8 gap-y-4 border-b border-border/10">
-            {['all', 'pending', 'active', 'completed', 'cancelled', 'expired'].map((tab) => (
+              {['all', 'open', 'active', 'completed', 'cancelled', 'expired'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as BookingStatus)}
