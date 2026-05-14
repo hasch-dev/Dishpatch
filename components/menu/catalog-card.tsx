@@ -1,58 +1,120 @@
 "use client";
 
-import { Settings2, Trash2, Edit3, MoreVertical } from "lucide-react";
-import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
+import { useMemo } from "react";
+import { Edit2, Trash2, UtensilsCrossed, PhilippinePeso, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export default function CatalogCard({ item, index, onEdit, onDelete }: any) {
-  const smartNumber = String(index + 1).padStart(3, '0');
+interface CatalogCardProps {
+  item: any;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+export default function CatalogCard({ item, onEdit, onDelete }: CatalogCardProps) {
+  // Derive the display price based on the pricing strategy used
+  const displayPrice = useMemo(() => {
+    if (item.price) {
+      return { label: "Fixed", amount: item.price };
+    }
+    if (item.catalog_item_pricing && item.catalog_item_pricing.length > 0) {
+      const minPrice = Math.min(...item.catalog_item_pricing.map((p: any) => p.price));
+      return { label: "Starts at", amount: minPrice };
+    }
+    return { label: "Unpriced", amount: 0 };
+  }, [item]);
+
+  const isMenu = item.item_type === "grouped_menu";
 
   return (
-    <div className="group relative border border-border/40 bg-card/10 hover:bg-card/20 transition-all duration-500 cursor-pointer overflow-hidden">
-      {/* Header Index & Settings */}
-      <div className="p-5 flex items-center justify-between border-b border-border/5">
-        <span className="text-[10px] font-mono font-black text-primary/40 tracking-tighter italic">ITEM_REF_{smartNumber}</span>
-        <DropdownMenu>
-            <DropdownMenuTrigger className="opacity-40 group-hover:opacity-100 transition-opacity outline-none">
-                <MoreVertical size={16} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-none border-border/40 bg-background p-1">
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }} className="text-[10px] uppercase font-bold tracking-widest gap-4 cursor-pointer focus:bg-primary/10">
-                    <Edit3 size={12} /> Edit Script
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-[10px] uppercase font-bold tracking-widest gap-4 text-destructive cursor-pointer focus:bg-destructive/10">
-                    <Trash2 size={12} /> Terminate
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+    <div className="group relative flex flex-col sm:flex-row bg-background border border-border/40 hover:border-primary/50 transition-colors shadow-sm hover:shadow-xl overflow-hidden h-[320px]">
+      
+      {/* LEFT: Image Container */}
+      <div className="relative sm:w-2/5 h-48 sm:h-full shrink-0 bg-muted/20 overflow-hidden border-b sm:border-b-0 sm:border-r border-border/40">
+        {item.image_url ? (
+          <img 
+            src={item.image_url} 
+            alt={item.name} 
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20">
+            {isMenu ? <Layers size={48} strokeWidth={1} /> : <UtensilsCrossed size={48} strokeWidth={1} />}
+            <span className="text-[9px] uppercase tracking-widest mt-4 font-black">No Image</span>
+          </div>
+        )}
+        
+        {/* Classification Badge overlay */}
+        <div className="absolute top-4 left-4 bg-background/90 backdrop-blur-md px-3 py-1 border border-border/20">
+          <span className="text-[8px] uppercase tracking-[0.2em] font-black">
+            {item.section_type || "Uncategorized"}
+          </span>
+        </div>
       </div>
 
-      <div className="p-8 space-y-6">
-        <h3 className="font-serif italic text-3xl leading-none group-hover:text-primary transition-colors duration-500">{item.name}</h3>
+      {/* RIGHT: Content Container */}
+      <div className="flex-1 p-6 sm:p-8 flex flex-col justify-between relative bg-gradient-to-br from-background to-muted/5">
         
-        {/* Gradient into Picture Design */}
-        <div className="relative aspect-video overflow-hidden border border-border/10">
-            {/* The Gradient Overlay */}
-            <div className="absolute inset-0 z-10 bg-gradient-to-t from-background via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity duration-700" />
-            <div className="absolute inset-0 z-10 bg-gradient-to-r from-background/20 to-transparent" />
-            
-            {item.image_url ? (
-                <img src={item.image_url} alt={item.name} className="object-cover w-full h-full grayscale group-hover:grayscale-0 scale-110 group-hover:scale-100 transition-all duration-1000" />
-            ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted/30">
-                    <span className="text-[8px] uppercase tracking-[0.5em] opacity-20">No Visual Record</span>
-                </div>
-            )}
+        {/* Actions (Top Right) */}
+        <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button variant="ghost" size="icon" onClick={onEdit} className="h-8 w-8 hover:bg-primary hover:text-primary-foreground">
+            <Edit2 size={12} />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8 hover:bg-destructive hover:text-destructive-foreground">
+            <Trash2 size={12} />
+          </Button>
         </div>
 
-        <div className="flex justify-between items-center pt-2">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] opacity-30">{item.section_type || "Standard"}</span>
-            <div className="h-px flex-1 bg-border/20 mx-4" />
-            <span className="font-serif italic text-lg opacity-80 group-hover:opacity-100 group-hover:text-primary transition-all">
-                ₱{item.pricing?.fixed || item.pricing?.['2'] || '0'}
-            </span>
+        {/* Header & Description */}
+        <div className="space-y-4 pr-12">
+          <div>
+            <h3 className="font-serif italic text-2xl sm:text-3xl leading-tight line-clamp-2">
+              {item.name}
+            </h3>
+            {isMenu && item.linked_item_ids && (
+              <p className="text-[9px] uppercase tracking-[0.2em] opacity-40 mt-2 font-bold">
+                {item.linked_item_ids.length} Courses Comprised
+              </p>
+            )}
+          </div>
+          
+          <p className="text-sm italic opacity-60 line-clamp-3 leading-relaxed">
+            {item.description || item.story || "No narrative provided for this item."}
+          </p>
         </div>
+
+        {/* Footer: Ingredients & Pricing */}
+        <div className="mt-6 pt-4 border-t border-border/20 flex items-end justify-between">
+          <div className="flex-1 max-w-[60%]">
+            {!isMenu && item.ingredients && item.ingredients.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {item.ingredients.slice(0, 3).map((ing: any, i: number) => (
+                  <span key={i} className="text-[9px] uppercase font-mono tracking-widest bg-muted/30 px-2 py-1 border border-border/20">
+                    {ing.name}
+                  </span>
+                ))}
+                {item.ingredients.length > 3 && (
+                  <span className="text-[9px] uppercase font-mono tracking-widest px-1 opacity-50">
+                    +{item.ingredients.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="text-right shrink-0">
+            <p className="text-[9px] uppercase tracking-[0.2em] font-black opacity-40 mb-1">
+              {displayPrice.label}
+            </p>
+            <div className="flex items-center justify-end gap-1 text-primary">
+              <PhilippinePeso size={14} />
+              <span className="font-mono text-xl font-bold">
+                {displayPrice.amount.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
+        
       </div>
     </div>
   );
