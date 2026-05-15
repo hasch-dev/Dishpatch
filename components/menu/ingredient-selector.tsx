@@ -7,9 +7,11 @@ import { cn } from "@/lib/utils";
 
 export default function IngredientSelector({ selected, onChange }: any) {
   const [query, setQuery] = useState("");
-  const filtered = INGREDIENTS_REGISTRY.filter(i => 
+  const filtered = INGREDIENTS_REGISTRY
+  .filter(i =>
     i.name.toLowerCase().includes(query.toLowerCase())
-  );
+  )
+  .sort((a, b) => a.name.localeCompare(b.name));
 
   const toggleIngredient = (name: string) => {
     selected.includes(name) 

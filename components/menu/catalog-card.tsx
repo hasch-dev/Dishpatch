@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Edit2, Trash2, UtensilsCrossed, PhilippinePeso, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { FOOD_CATEGORIES } from "@/constants/food-categories"; // Import this to get the labels
 
 interface CatalogCardProps {
   item: any;
@@ -23,6 +24,12 @@ export default function CatalogCard({ item, onEdit, onDelete }: CatalogCardProps
     }
     return { label: "Unpriced", amount: 0 };
   }, [item]);
+
+  // Helper to get the readable category label (e.g., "Meat & Poultry" instead of "meat")
+  const categoryLabel = useMemo(() => {
+    const category = FOOD_CATEGORIES.find(c => c.value === item.food_category);
+    return category ? category.label : (item.section_type || "Uncategorized");
+  }, [item.food_category, item.section_type]);
 
   const isMenu = item.item_type === "grouped_menu";
 
@@ -47,7 +54,8 @@ export default function CatalogCard({ item, onEdit, onDelete }: CatalogCardProps
         {/* Classification Badge overlay */}
         <div className="absolute top-4 left-4 bg-background/90 backdrop-blur-md px-3 py-1 border border-border/20">
           <span className="text-[8px] uppercase tracking-[0.2em] font-black">
-            {item.section_type || "Uncategorized"}
+            {/* UPDATED: Uses the derived categoryLabel instead of section_type */}
+            {categoryLabel}
           </span>
         </div>
       </div>

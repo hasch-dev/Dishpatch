@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/select";
 import IngredientSelector from "./ingredient-selector";
 import { CULINARY_CLASSIFICATIONS } from "@/constants/classifications";
+import { FOOD_CATEGORIES } from "@/constants/food-categories";
 import { createClient } from "@/lib/supabase/client";
+import { INGREDIENTS_REGISTRY } from "@/constants/ingredients";
 
 interface ALaCarteEditorProps {
   isOpen: boolean;
@@ -28,7 +30,6 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const initialState = {
@@ -37,7 +38,7 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
     description: "",
     story: "",
     classification: "main",
-    section_type: "General", // NEW: Added section_type to state
+    food_category: "meat",
     ingredients: [],
     image_url: "",
     pricing: { 
@@ -48,8 +49,13 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
     }
   };
 
+  const sortedIngredients = [...INGREDIENTS_REGISTRY].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
   const [formData, setFormData] = useState(initialState);
 
+  // Revenue calculation for the technical matrix
   const revenueTable = useMemo(() => {
     const rows = [];
     for (let i = 1; i <= 100; i++) {
@@ -75,6 +81,7 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
     return rows;
   }, [formData.pricing]);
 
+  // Sync state with incoming item data
   useEffect(() => {
     if (isOpen) {
       if (item) {
@@ -84,7 +91,7 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
           description: item.description || "",
           story: item.story || "",
           classification: item.classification || "main",
-          section_type: item.section_type || "General", // NEW: Populate from item
+          food_category: item.food_category || "meat",
           ingredients: item.ingredients || [],
           image_url: item.image_url || "",
           pricing: item.pricing || initialState.pricing
@@ -101,14 +108,13 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
     setPendingFile(file);
     const previewUrl = URL.createObjectURL(file);
     setFormData(prev => ({ ...prev, image_url: previewUrl }));
   };
 
   const handleReset = () => {
-    if (confirm("Clear all inputs in this draft?")) {
+    if (confirm("Clear all inputs in this draft? This cannot be undone.")) {
       setFormData(initialState);
       setPendingFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -117,7 +123,6 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
 
   const handleInternalSave = async (e: React.MouseEvent) => {
     e.preventDefault();
-    
     if (!formData.name.trim()) {
       toast.error("Please provide a name for this dish.");
       return;
@@ -128,14 +133,14 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
 
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
       if (authError || !user) {
-        toast.error("You must be logged in to save items.");
+        toast.error("Session expired. Please log in again.");
         return;
       }
 
       let finalImageUrl = formData.image_url;
 
+      // Handle Image Upload to Supabase Storage
       if (pendingFile) {
         setUploading(true);
         const fileExt = pendingFile.name.split('.').pop();
@@ -156,6 +161,7 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
         setUploading(false);
       }
 
+      // Upsert into chef_catalog_items
       const { data: savedItem, error: itemError } = await supabase
         .from('chef_catalog_items')
         .upsert({
@@ -165,16 +171,17 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
           description: formData.description,
           story: formData.story,
           classification: formData.classification,
+          food_category: formData.food_category, 
           ingredients: formData.ingredients,
           image_url: finalImageUrl,
-          item_type: 'a_la_carte',
-          section_type: formData.section_type // UPDATED: Now saves dynamic category
+          item_type: 'a_la_carte'
         })
         .select()
         .single();
 
       if (itemError) throw itemError;
 
+      // Pricing Sync Logic
       const pricingRows = Object.entries(formData.pricing)
         .filter(([_, price]) => price !== "" && price !== null)
         .map(([range, price]) => ({
@@ -231,9 +238,9 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
 
         <div className="flex-1 overflow-y-auto p-12 space-y-20 custom-scrollbar bg-gradient-to-b from-transparent to-muted/5">
           
-          {/* Identity & Image Allocation */}
+          {/* SECTION 1: MANIFEST IDENTITY */}
           <div className="grid lg:grid-cols-2 gap-16">
-            <div onClick={handleImageClick} className="aspect-square bg-muted/40 border-2 border-dashed border-border/60 relative group cursor-pointer overflow-hidden flex items-center justify-center hover:border-primary">
+            <div onClick={handleImageClick} className="aspect-square bg-muted/40 border-2 border-dashed border-border/60 relative group cursor-pointer overflow-hidden flex items-center justify-center hover:border-primary transition-colors">
               {formData.image_url ? (
                 <img src={formData.image_url} className="object-cover w-full h-full" alt="Preview" />
               ) : (
@@ -248,7 +255,7 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
             <div className="flex flex-col justify-center space-y-12">
               <div className="space-y-10">
                 <div className="space-y-4 ml-6">
-                  <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Dish Title</label>
+                  <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40 text-primary">Dish Title</label>
                   <Input 
                     value={formData.name} 
                     onChange={e => setFormData({...formData, name: e.target.value})} 
@@ -257,13 +264,33 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
                   />
                 </div>
 
-                {/* NEW: Grid for Dual Classification */}
-                <div className="grid grid-cols-2 gap-8 ml-6">
+                <div className="flex flex-col gap-8 ml-6">
+                  {/* Primary Category Dropdown */}
                   <div className="space-y-4">
-                    <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Culinary Classification</label>
+                    <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Origin Category</label>
+                    <Select 
+                      value={formData.food_category} 
+                      onValueChange={(v) => setFormData({...formData, food_category: v})}
+                    >
+                      <SelectTrigger className="rounded-none w-full border-0 border-b-2 border-border/40 bg-transparent px-4 text-xs uppercase tracking-[0.3em] h-14 focus:ring-0">
+                        <SelectValue placeholder="SYSTEM ORIGIN" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-none border-border/40 bg-background z-[150]">
+                        {FOOD_CATEGORIES.map((c) => (
+                          <SelectItem key={c.value} value={c.value} className="text-[11px] uppercase py-4 border-b border-border/5 last:border-0">
+                            <span className="opacity-30 mr-2 font-mono text-[9px]">{c.code}</span> {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Classification Dropdown */}
+                  <div className="space-y-4">
+                    <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Classification</label>
                     <Select value={formData.classification} onValueChange={(v) => setFormData({...formData, classification: v})}>
                       <SelectTrigger className="rounded-none w-full border-0 border-b-2 border-border/40 bg-transparent px-4 text-xs uppercase tracking-[0.3em] h-14 focus:ring-0">
-                        <SelectValue placeholder="CHOOSE CATEGORY" />
+                        <SelectValue placeholder="CHOOSE" />
                       </SelectTrigger>
                       <SelectContent className="rounded-none border-border/40 bg-background z-[150]">
                         {CULINARY_CLASSIFICATIONS.map((c) => (
@@ -274,23 +301,98 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-4">
-                    <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Menu Category</label>
-                    <Input 
-                      value={formData.section_type} 
-                      onChange={e => setFormData({...formData, section_type: e.target.value})} 
-                      className="rounded-none border-0 border-b-2 border-border/40 bg-transparent px-4 text-[11px] uppercase tracking-[0.3em] h-14 focus-visible:ring-0 focus-visible:border-primary" 
-                      placeholder="e.g. Appetizers"
-                    />
-                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Pricing Matrix & Revenue Table */}
-          <div className="pt-12 border-t border-border/20">
+          {/* SECTION 2: THE NARRATIVE */}
+          
+          <div className="border-t border-border/20 pt-12">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+            
+            {/* Culinary Narrative */}
+            <div className="relative group">
+              <div className="mb-4 flex items-center justify-between">
+                <label className="text-[11px] uppercase tracking-[0.25em] font-black text-muted-foreground">
+                  Culinary Narrative
+                </label>
+
+                <span className="text-[10px] uppercase tracking-[0.2em] opacity-40">
+                  Provenance & Intent
+                </span>
+              </div>
+
+              <div className="relative overflow-hidden border border-border/40 bg-background/40 backdrop-blur-sm transition-all duration-300 group-focus-within:border-primary/50">
+                <div className="absolute left-0 top-0 h-full w-1 bg-primary/60" />
+
+                <Textarea
+                  value={formData.story}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      story: e.target.value,
+                    })
+                  }
+                  placeholder="Tell the story behind the dish — inspiration, sourcing, philosophy, and emotional intent..."
+                  className="
+                    min-h-[320px]
+                    resize-none
+                    border-0
+                    rounded-none
+                    bg-transparent
+                    px-8
+                    py-8
+                    text-lg
+                    leading-relaxed
+                    shadow-none
+                    focus-visible:ring-0
+                    focus-visible:outline-none
+                  "
+                />
+              </div>
+            </div>
+
+            {/* Guest Description */}
+            <div className="relative group">
+              <div className="mb-4 flex items-center justify-between">
+                <label className="text-[11px] uppercase tracking-[0.25em] font-black text-muted-foreground">
+                  Sensory Description
+                </label>
+
+                <span className="text-[10px] uppercase tracking-[0.2em] opacity-40">
+                  Guest Facing
+                </span>
+              </div>
+
+              <div className="relative overflow-hidden border border-border/40 bg-background/40 backdrop-blur-sm transition-all duration-300 group-focus-within:border-primary/50">
+                <div className="absolute left-0 top-0 h-full w-1 bg-primary/60" />
+
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Describe aroma, texture, flavor progression, and finish in a refined guest-facing tone..."
+                  className="
+                    min-h-[320px] resize-none border-0 rounded-none bg-transparent px-8 py-8 text-lg leading-relaxed shadow-none focus-visible:ring-0 focus-visible:outline-none"
+                />
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+          {/* SECTION 3: COMPONENT MANIFEST */}
+          <div className="pt-12 border-t border-border/20 ml-6">
+             <IngredientSelector selected={formData.ingredients} onChange={(i: any) => setFormData({...formData, ingredients: i})} />
+          </div>
+
+          {/* SECTION 4: VALUATION MATRIX */}
+          <div className="pt-12 border-t border-border/20 pb-32">
             <div className="flex items-center gap-3 ml-6 mb-10">
               <PhilippinePeso size={18} className="text-primary" />
               <h3 className="text-[11px] uppercase font-black tracking-[0.3em]">Rate Structure & Multi-Pax Projections</h3>
@@ -337,7 +439,6 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
                       <tr className="border-b border-border/40">
                         <th className="p-4 text-[9px] uppercase opacity-40 font-black">Pax</th>
                         <th className="p-4 text-[9px] uppercase opacity-40 font-black">Tier</th>
-                        <th className="p-4 text-[9px] uppercase opacity-40 font-black">Rate / Head</th>
                         <th className="p-4 text-[9px] uppercase opacity-40 font-black text-right">Total Gross</th>
                       </tr>
                     </thead>
@@ -346,7 +447,6 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
                         <tr key={row.pax} className="hover:bg-primary/5 transition-colors group">
                           <td className="p-4 font-mono text-xs opacity-60">{row.pax}</td>
                           <td className="p-4 text-[10px] font-bold uppercase tracking-tight">{row.tier}</td>
-                          <td className="p-4 font-mono text-xs opacity-60">₱{row.rate.toLocaleString()}</td>
                           <td className="p-4 font-mono text-sm text-right font-bold text-primary origin-right transition-transform group-hover:scale-110">
                             ₱{row.total.toLocaleString()}
                           </td>
@@ -357,33 +457,6 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Logistics & Ingredients */}
-          <div className="grid lg:grid-cols-2 gap-16 pt-12 border-t border-border/20">
-            <div className="space-y-8 ml-6">
-              <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Menu Component Description</label>
-              <Textarea 
-                value={formData.description}
-                onChange={e => setFormData({...formData, description: e.target.value})}
-                className="rounded-none bg-muted/10 border-2 border-border/20 min-h-[140px] italic p-6 text-base focus-visible:ring-0 focus-visible:border-primary leading-relaxed resize-none"
-                placeholder="A concise sensory profile for the guest..."
-              />
-            </div>
-            <div className="space-y-8 ml-6">
-               <IngredientSelector selected={formData.ingredients} onChange={(i: any) => setFormData({...formData, ingredients: i})} />
-            </div>
-          </div>
-
-          {/* Narrative */}
-          <div className="space-y-8 pt-12 border-t border-border/20 pb-32 ml-6">
-            <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Culinary Narrative</label>
-            <Textarea 
-              value={formData.story}
-              onChange={e => setFormData({...formData, story: e.target.value})}
-              className="rounded-none bg-transparent border-0 border-l-4 border-primary/40 min-h-[350px] italic p-10 text-2xl leading-relaxed focus-visible:ring-0 focus-visible:border-primary"
-              placeholder="Detail the provenance and intent..."
-            />
           </div>
         </div>
 

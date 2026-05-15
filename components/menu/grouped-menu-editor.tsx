@@ -32,7 +32,7 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
     description: item?.description || "",
     story: item?.story || "",
     section_type: item?.section_type || "Tasting Menu",
-    classification: item?.classification || "package", // NEW: Added Classification state
+    classification: item?.classification || "package", 
     linked_item_ids: item?.linked_item_ids || [],
     image_url: item?.image_url || "",
     pricing: item?.pricing || { "2_pax": "", "3_6_pax": "", "7_12_pax": "", "13_plus_pax": "", "fixed": "" }
@@ -62,7 +62,7 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
                 description: item.description || "",
                 story: item.story || "",
                 section_type: item.section_type || "Tasting Menu",
-                classification: item.classification || "package", // NEW: Ensure it updates on open
+                classification: item.classification || "package", 
                 linked_item_ids: item.linked_item_ids || [],
                 image_url: item.image_url || "",
                 pricing: item.pricing || { "2_pax": "", "3_6_pax": "", "7_12_pax": "", "13_plus_pax": "", "fixed": "" }
@@ -131,7 +131,7 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
           description: formData.description,
           story: formData.story,
           section_type: formData.section_type,
-          classification: formData.classification, // NEW: Saves dynamic classification instead of hardcoded 'package'
+          classification: formData.classification, 
           linked_item_ids: formData.linked_item_ids,
           image_url: finalImageUrl,
           item_type: "grouped_menu",
@@ -192,10 +192,9 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
           </Button>
         </header>
 
-        {/* BODY */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           
-          {/* HERO IMAGE SECTION */}
+          {/* STEP 1: ASSEMBLY IDENTITY (Visuals & Naming) */}
           <div 
               onClick={handleImageClick}
               className="w-full aspect-video bg-muted/30 border-b border-border/20 relative group cursor-pointer overflow-hidden flex items-center justify-center"
@@ -215,7 +214,6 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
           </div>
 
           <div className="p-8 space-y-12">
-            {/* CORE DETAILS */}
             <div className="space-y-8">
               <div className="space-y-2">
                   <label className="text-[9px] uppercase font-black tracking-widest opacity-50">Menu Title</label>
@@ -227,7 +225,6 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
                   />
               </div>
 
-              {/* NEW: Grid for Category and Classification side-by-side */}
               <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-2">
                       <label className="text-[9px] uppercase font-black tracking-widest opacity-50">Descriptor Type</label>
@@ -254,9 +251,14 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
                       <ChevronDown className="absolute right-0 bottom-3 opacity-30 pointer-events-none" size={14} />
                   </div>
               </div>
+            </div>
 
+            <div className="h-px w-full bg-border/20" />
+
+            {/* STEP 2: THE NARRATIVE (Storytelling) */}
+            <div className="space-y-8">
               <div className="space-y-2">
-                  <label className="text-[9px] uppercase font-black tracking-widest opacity-50">Brief Description</label>
+                  <label className="text-[9px] uppercase font-black tracking-widest opacity-50">Guest Summary (Brief)</label>
                   <Textarea 
                       value={formData.description}
                       onChange={e => setFormData({...formData, description: e.target.value})}
@@ -266,11 +268,11 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
               </div>
 
               <div className="space-y-2">
-                  <label className="text-[9px] uppercase font-black tracking-widest opacity-50">The Narrative (Story)</label>
+                  <label className="text-[9px] uppercase font-black tracking-widest opacity-50">Culinary Narrative (Extended Story)</label>
                   <Textarea 
                       value={formData.story}
                       onChange={e => setFormData({...formData, story: e.target.value})}
-                      className="rounded-none bg-muted/10 border border-border/40 min-h-[120px] p-4 italic text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary placeholder:not-italic"
+                      className="rounded-none bg-muted/10 border border-border/40 min-h-[160px] p-4 italic text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary placeholder:not-italic"
                       placeholder="Describe the inspiration, journey, or the chef's vision for this specific menu..."
                   />
               </div>
@@ -278,28 +280,12 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
 
             <div className="h-px w-full bg-border/20" />
 
-            {/* PRICING */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <Utensils size={14} className="opacity-50" />
-                <h3 className="text-[10px] uppercase font-black tracking-widest">Menu Valuation</h3>
-              </div>
-              <PricingStrategyInput 
-                  pricing={formData.pricing} 
-                  setPricing={(p: any) => setFormData({...formData, pricing: p})}
-                  isFixed={isFixed}
-                  setIsFixed={setIsFixed}
-              />
-            </div>
-
-            <div className="h-px w-full bg-border/20" />
-
-            {/* COMPOSITION (A LA CARTE SELECTOR) */}
+            {/* STEP 3: ORCHESTRATION (The Components) */}
             <div className="space-y-6">
               <div className="flex justify-between items-end">
                   <div>
                     <h3 className="font-serif italic text-2xl">Menu Composition</h3>
-                    <p className="text-[10px] uppercase tracking-widest opacity-40 mt-1">Select A La Carte Items</p>
+                    <p className="text-[10px] uppercase tracking-widest opacity-40 mt-1">Select A La Carte Components</p>
                   </div>
                   <div className="relative w-48">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 opacity-30" />
@@ -361,6 +347,22 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
                   )}
               </div>
             </div>
+
+            <div className="h-px w-full bg-border/20" />
+
+            {/* STEP 4: VALUATION STRATEGY */}
+            <div className="space-y-4 pb-20">
+              <div className="flex items-center gap-3 mb-2">
+                <Utensils size={14} className="opacity-50" />
+                <h3 className="text-[10px] uppercase font-black tracking-widest">Valuation Strategy</h3>
+              </div>
+              <PricingStrategyInput 
+                  pricing={formData.pricing} 
+                  setPricing={(p: any) => setFormData({...formData, pricing: p})}
+                  isFixed={isFixed}
+                  setIsFixed={setIsFixed}
+              />
+            </div>
           </div>
         </div>
 
@@ -379,7 +381,7 @@ export default function GroupedMenuEditor({ isOpen, onClose, item, onSave }: Gro
                 className="rounded-none bg-primary text-primary-foreground uppercase text-[10px] font-black tracking-widest px-8 h-10 shadow-lg hover:bg-primary/90 transition-all"
             >
               {isSaving ? <Loader2 className="animate-spin mr-2" size={12} /> : null}
-              {formData.id ? "Update Menu" : "Save Menu"}
+              {formData.id ? "Update Assembly" : "Save Assembly"}
             </Button>
           </div>
         </footer>
