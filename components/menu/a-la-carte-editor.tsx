@@ -29,7 +29,6 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
   const [uploading, setUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // NEW: State to hold the actual file before uploading
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const initialState = {
@@ -38,6 +37,7 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
     description: "",
     story: "",
     classification: "main",
+    section_type: "General", // NEW: Added section_type to state
     ingredients: [],
     image_url: "",
     pricing: { 
@@ -84,6 +84,7 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
           description: item.description || "",
           story: item.story || "",
           classification: item.classification || "main",
+          section_type: item.section_type || "General", // NEW: Populate from item
           ingredients: item.ingredients || [],
           image_url: item.image_url || "",
           pricing: item.pricing || initialState.pricing
@@ -91,7 +92,7 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
       } else {
         setFormData(initialState);
       }
-      setPendingFile(null); // Reset pending file on open
+      setPendingFile(null);
     }
   }, [item, isOpen]);
 
@@ -101,7 +102,7 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
     const file = e.target.files?.[0];
     if (!file) return;
     
-    setPendingFile(file); // Store file for database save
+    setPendingFile(file);
     const previewUrl = URL.createObjectURL(file);
     setFormData(prev => ({ ...prev, image_url: previewUrl }));
   };
@@ -135,7 +136,6 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
 
       let finalImageUrl = formData.image_url;
 
-      // --- NEW: UPLOAD LOGIC ---
       if (pendingFile) {
         setUploading(true);
         const fileExt = pendingFile.name.split('.').pop();
@@ -155,7 +155,6 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
         finalImageUrl = publicUrl;
         setUploading(false);
       }
-      // ------------------------
 
       const { data: savedItem, error: itemError } = await supabase
         .from('chef_catalog_items')
@@ -167,9 +166,9 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
           story: formData.story,
           classification: formData.classification,
           ingredients: formData.ingredients,
-          image_url: finalImageUrl, // Use the finalized URL
+          image_url: finalImageUrl,
           item_type: 'a_la_carte',
-          section_type: 'general'
+          section_type: formData.section_type // UPDATED: Now saves dynamic category
         })
         .select()
         .single();
@@ -258,20 +257,33 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
                   />
                 </div>
 
-                <div className="space-y-4 ml-6">
-                  <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Culinary Classification</label>
-                  <Select value={formData.classification} onValueChange={(v) => setFormData({...formData, classification: v})}>
-                    <SelectTrigger className="rounded-none w-96 border-0 border-b-2 border-border/40 bg-transparent px-4 text-xs uppercase tracking-[0.3em] h-14 focus:ring-0">
-                      <SelectValue placeholder="CHOOSE CATEGORY" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-none border-border/40 bg-background z-[150]">
-                      {CULINARY_CLASSIFICATIONS.map((c) => (
-                        <SelectItem key={c.value} value={c.value} className="text-[11px] uppercase py-4 border-b border-border/5 last:border-0">
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* NEW: Grid for Dual Classification */}
+                <div className="grid grid-cols-2 gap-8 ml-6">
+                  <div className="space-y-4">
+                    <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Culinary Classification</label>
+                    <Select value={formData.classification} onValueChange={(v) => setFormData({...formData, classification: v})}>
+                      <SelectTrigger className="rounded-none w-full border-0 border-b-2 border-border/40 bg-transparent px-4 text-xs uppercase tracking-[0.3em] h-14 focus:ring-0">
+                        <SelectValue placeholder="CHOOSE CATEGORY" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-none border-border/40 bg-background z-[150]">
+                        {CULINARY_CLASSIFICATIONS.map((c) => (
+                          <SelectItem key={c.value} value={c.value} className="text-[11px] uppercase py-4 border-b border-border/5 last:border-0">
+                            {c.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] uppercase font-black tracking-[0.2em] opacity-40">Menu Category</label>
+                    <Input 
+                      value={formData.section_type} 
+                      onChange={e => setFormData({...formData, section_type: e.target.value})} 
+                      className="rounded-none border-0 border-b-2 border-border/40 bg-transparent px-4 text-[11px] uppercase tracking-[0.3em] h-14 focus-visible:ring-0 focus-visible:border-primary" 
+                      placeholder="e.g. Appetizers"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -312,7 +324,6 @@ export default function ALaCarteEditor({ isOpen, onClose, item, onSave }: ALaCar
                 </div>
               </div>
 
-              {/* Revenue breakdown table */}
               <div className="border border-border/40 bg-muted/5 flex flex-col h-[500px]">
                 <div className="p-4 border-b border-border/40 bg-muted/10 flex items-center justify-between">
                   <div className="flex items-center gap-2">
