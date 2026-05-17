@@ -1,152 +1,111 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useState } from "react";
 import { 
-  ShieldCheck, Users2, UtensilsCrossed, 
-  Database, LayoutGrid, LogOut, ChevronDown
-} from "lucide-react"
+  ChevronRight, LayoutDashboard, Package, MessageSquare, 
+  LogOut, Search, Terminal, Image as ImageIcon 
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarHeader,
-  useSidebar,
-} from "@/components/ui/sidebar"
-import { 
-  Collapsible, 
-  CollapsibleContent, 
-  CollapsibleTrigger 
-} from "@/components/ui/collapsible"
-import { cn } from "@/lib/utils"
+export default function AdminSidebar() {
+  const [isExpanded, setIsExpanded] = useState(false);
 
-const ADMIN_NAV = [
-  {
-    title: "Operations",
-    icon: LayoutGrid,
-    items: [
-      { label: "Main Command", href: "/admin/dashboard" },
-      { label: "Active Requests", href: "/admin/requests" },
-      { label: "Inquiry Desk", href: "/admin/inquiries" },
-    ]
-  },
-  {
-    title: "Network Management",
-    icon: Users2,
-    items: [
-      { label: "Manage Partners", href: "/admin/partners" },
-      { label: "Chef Directory", href: "/admin/users/chefs" },
-      { label: "Client Database", href: "/admin/users/clients" },
-    ]
-  },
-  {
-    title: "Global Content",
-    icon: UtensilsCrossed,
-    items: [
-      { label: "Menu Master List", href: "/admin/catalog" },
-      { label: "Global Gallery", href: "/admin/gallery" },
-    ]
-  },
-  {
-    title: "System Logs",
-    icon: Database,
-    items: [
-      { label: "Transaction Logs", href: "/admin/finance" },
-      { label: "Security & RLS", href: "/admin/system/security" },
-      { label: "Server Status", href: "/admin/system/health" },
-    ]
-  }
-]
-
-export function AdminSidebar() {
-  const pathname = usePathname()
-  const { state } = useSidebar()
-  const isCollapsed = state === "collapsed"
+  const navItems = [
+    { icon: LayoutDashboard, label: "Overview", href: "/admin" },
+    { icon: Package, label: "Admin Products", href: "/admin-products" },
+    { icon: ImageIcon, label: "Admin Gallery", href: "/admin-gallery" },
+    { icon: MessageSquare, label: "Inquiry Feed", href: "/admin-inquiries" },
+  ];
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-white/5 bg-zinc-950 text-zinc-400">
-      {/* Brand Header */}
-      <SidebarHeader className="h-16 flex flex-row items-center px-6 border-b border-white/5 bg-zinc-950">
-        <ShieldCheck className="text-primary shrink-0" size={20} />
-        {!isCollapsed && (
-          <div className="ml-3 animate-in fade-in slide-in-from-left-2 duration-500">
-            <p className="text-[10px] font-black uppercase tracking-[.3em] text-primary leading-none">System Admin</p>
-            <p className="text-[7px] uppercase tracking-widest opacity-40 mt-1">Root Access v16.2</p>
-          </div>
+    <motion.aside
+      initial={false}
+      animate={{ width: isExpanded ? "90%" : "80px" }}
+      className="relative h-screen bg-foreground border-r border-foreground/20 text-background z-[300] flex flex-col transition-all duration-500 ease-in-out"
+    >
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="absolute -right-4 top-12 bg-primary text-background p-1 rounded-sm hover:scale-110 transition-transform z-50"
+      >
+        <ChevronRight className={cn("h-4 w-4 transition-transform duration-500", isExpanded && "rotate-180")} />
+      </button>
+
+      {/* Top Branding */}
+      <div className="p-6 flex items-center gap-4 border-b border-background/10">
+        <div className="min-w-[32px] h-8 bg-primary flex items-center justify-center font-black text-foreground">D</div>
+        {isExpanded && (
+          <motion.span 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="text-xs font-black uppercase tracking-[0.4em] whitespace-nowrap"
+          >
+            Dishpatch <span className="text-primary italic font-serif lowercase">hq</span>
+          </motion.span>
         )}
-      </SidebarHeader>
+      </div>
 
-      {/* Navigation Content */}
-      <SidebarContent className="py-6 custom-scrollbar bg-zinc-950">
-        {ADMIN_NAV.map((group) => (
-          <SidebarGroup key={group.title} className="px-3">
-            <Collapsible defaultOpen className="group/collapsible">
-              <SidebarMenuItem className="list-none">
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="hover:bg-white/5 hover:text-white transition-colors py-5">
-                    <group.icon size={18} className="shrink-0" />
-                    {!isCollapsed && (
-                      <>
-                        <span className="ml-3 text-[10px] uppercase font-black tracking-widest flex-1 text-left">
-                          {group.title}
-                        </span>
-                        <ChevronDown size={14} className="opacity-20 group-data-[state=open]/collapsible:rotate-180 transition-transform" />
-                      </>
-                    )}
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent>
-                  <SidebarMenu className={cn(
-                    "mt-1 space-y-1", 
-                    !isCollapsed && "ml-4 border-l border-white/5 pl-2"
-                  )}>
-                    {group.items.map((item) => {
-                      const isActive = pathname === item.href
-                      return (
-                        <SidebarMenuItem key={item.href}>
-                          <SidebarMenuButton 
-                            asChild 
-                            isActive={isActive}
-                            className={cn(
-                              "h-8 rounded-none transition-all duration-200",
-                              isActive 
-                                ? "bg-primary/10 text-primary font-bold" 
-                                : "hover:bg-white/5 hover:text-primary opacity-60 hover:opacity-100"
-                            )}
-                          >
-                            <Link href={item.href} className="text-[9px] uppercase tracking-[0.2em]">
-                              {item.label}
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      )
-                    })}
-                  </SidebarMenu>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-          </SidebarGroup>
+      {/* Main Nav */}
+      <nav className="flex-1 py-8 flex flex-col gap-2">
+        {navItems.map((item) => (
+          <Link key={item.label} href={item.href}>
+            <div className="group flex items-center px-6 py-4 hover:bg-background/5 transition-colors cursor-pointer">
+              <item.icon className="min-w-[24px] h-5 w-5 opacity-60 group-hover:opacity-100 group-hover:text-primary transition-all" />
+              {isExpanded && (
+                <motion.span 
+                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                  className="ml-6 text-[10px] font-bold uppercase tracking-[0.3em]"
+                >
+                  {item.label}
+                </motion.span>
+              )}
+            </div>
+          </Link>
         ))}
-      </SidebarContent>
+      </nav>
 
-      {/* System Footer */}
-      <SidebarFooter className="p-4 border-t border-white/5 bg-zinc-950">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton className="h-10 hover:bg-destructive/10 hover:text-destructive transition-colors rounded-none">
-              <LogOut size={16} />
-              {!isCollapsed && <span className="ml-3 text-[10px] uppercase font-black tracking-widest">Terminate Session</span>}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
-  )
+      {/* Expanded Terminal View */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="px-12 py-12 border-t border-background/10"
+          >
+            <div className="max-w-xl">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary flex items-center gap-2 mb-6">
+                <Terminal size={14} /> Global Registry Search
+              </h4>
+              <div className="bg-background/5 p-6 border border-background/10">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 opacity-30" />
+                  <input 
+                    placeholder="LOCATE PRODUCT OR ASSET ID..." 
+                    className="w-full bg-transparent border-b border-background/20 pl-12 py-3 text-xs font-mono focus:outline-none focus:border-primary transition-colors tracking-widest"
+                  />
+                </div>
+                <p className="text-[8px] uppercase mt-4 opacity-30 tracking-[0.2em]">Enter product UUID or category tag</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Dropoff */}
+      <div className="p-6 border-t border-background/10">
+        <Link href="/">
+          <div className="group flex items-center px-2 py-4 hover:bg-red-500/10 transition-colors cursor-pointer rounded-sm">
+            <LogOut className="min-w-[24px] h-5 w-5 text-red-500" />
+            {isExpanded && (
+              <motion.span 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="ml-6 text-[10px] font-bold uppercase tracking-[0.3em] text-red-500"
+              >
+                Terminate Session
+              </motion.span>
+            )}
+          </div>
+        </Link>
+      </div>
+    </motion.aside>
+  );
 }

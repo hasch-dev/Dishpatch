@@ -32,9 +32,23 @@ export function LoginForm({
       if (authError) throw authError;
 
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase.from("profiles").select("user_type").eq("id", user?.id).single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", user?.id)
+        .single();
 
-      router.push(profile?.user_type === "chef" ? "/chef-dashboard" : "/user-dashboard");
+      // NEW ROUTING LOGIC
+      const role = profile?.user_type;
+      
+      if (role === "admin") {
+        router.push("/admin-dashboard");
+      } else if (role === "chef") {
+        router.push("/chef-dashboard");
+      } else {
+        router.push("/user-dashboard");
+      }
+      
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred during login");
     } finally {

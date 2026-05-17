@@ -71,11 +71,6 @@ export default function GalleryPage() {
         animate={{ y: 0, x: "-50%", opacity: 1 }}
         className="fixed bottom-8 left-1/2 z-[100] flex items-center gap-1 p-2 bg-background/60 backdrop-blur-2xl border border-border rounded-2xl shadow-2xl"
       >
-        <Link href="/">
-          <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10 hover:text-primary">
-            <Home className="h-5 w-5" />
-          </Button>
-        </Link>
         <Link href="/gallery">
           <Button variant="ghost" size="icon" className="rounded-xl bg-primary/10 text-primary">
             <ImageIcon className="h-5 w-5" />
