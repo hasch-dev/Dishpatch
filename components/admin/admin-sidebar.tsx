@@ -20,7 +20,7 @@ export default function AdminSidebar() {
   useEffect(() => setMounted(true), []);
 
   const navItems = [
-    { icon: LayoutDashboard, label: "Overview", href: "/admin" },
+    { icon: LayoutDashboard, label: "Overview", href: "/admin-dashboard" },
     { icon: Package, label: "Admin Products", href: "/admin-products" },
     { icon: ImageIcon, label: "Admin Gallery", href: "/admin-gallery" },
     { icon: MessageSquare, label: "Inquiry Feed", href: "/admin-inquiries" },
