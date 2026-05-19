@@ -90,17 +90,17 @@ export default function ProductsPage() {
       <FloatingNav />
 
       {/* MAIN COHESIVE LAYOUT */}
-      <main className="flex-1 md:pl-28 pt-8 md:pt-16 px-6 md:px-12 pb-32">
+      <main className="flex-1 md:pl-32 pt-8 md:pt-16 px-6 md:px-12 pb-32">
         
         {/* Header & Global Search */}
         <header className="space-y-12 mb-16 max-w-7xl">
           <div className="flex flex-col md:flex-row justify-between items-end gap-8">
             <div className="space-y-2">
-              <h1 className="text-6xl md:text-[100px] font-black uppercase tracking-tighter leading-[0.8]">
-                The<br /><span className="text-primary italic font-serif">Registry</span>
+              <h1 className="text-4xl md:text-[80px] font-black uppercase tracking-tighter leading-[0.8]">
+                Commissary<br /><span className="text-primary italic font-serif">Catalog</span>
               </h1>
               <p className="text-[10px] uppercase font-bold tracking-[0.5em] text-muted-foreground pl-2">
-                System-Wide Asset Catalog
+                System-Wide Dishpatch Products
               </p>
             </div>
             

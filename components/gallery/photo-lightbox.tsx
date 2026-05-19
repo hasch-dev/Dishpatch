@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { X, ChefHat, Info } from "lucide-react";
+import { X, Fingerprint } from "lucide-react";
 
 interface PhotoLightboxProps {
   photo: any;
@@ -16,63 +16,67 @@ export function PhotoLightbox({ photo, onClose }: PhotoLightboxProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-background/98 backdrop-blur-3xl flex items-center justify-center p-4 md:p-12"
+      className="fixed inset-0 z-[200] bg-background/95 backdrop-blur-2xl flex flex-col lg:flex-row overflow-hidden"
     >
+      {/* Absolute Close Button */}
       <button 
         onClick={onClose}
-        className="absolute top-8 right-8 z-[210] h-12 w-12 flex items-center justify-center hover:bg-primary/10 rounded-full transition-all group"
+        className="absolute top-6 right-6 lg:top-8 lg:right-8 z-[210] h-12 w-12 flex items-center justify-center bg-background/50 hover:bg-foreground/10 border border-foreground/10 rounded-full backdrop-blur-md transition-all group"
       >
-        <X className="h-8 w-8 group-hover:rotate-90 transition-transform" />
+        <X className="h-5 w-5 text-foreground group-hover:rotate-90 transition-transform duration-300" />
       </button>
 
-      <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-4 gap-12 items-center">
-         <motion.div 
-          initial={{ scale: 0.95, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          className="lg:col-span-3 relative shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-foreground/10"
-         >
-           <img 
-              src={photo.image_url} 
-              className="w-full max-h-[80vh] object-contain bg-zinc-900/50" 
-              alt={photo.title} 
-           />
-         </motion.div>
-
-         <div className="lg:col-span-1 space-y-8 text-left">
-            <div className="space-y-2">
-              <p className="text-primary text-[10px] font-black uppercase tracking-[0.4em] italic">
-                {photo.category || "General"}
-              </p>
-              <h2 className="text-5xl font-serif italic leading-[0.9]">{photo.title}</h2>
-            </div>
-            
-            <div className="h-px w-full bg-foreground/10" />
-            
-            <div className="space-y-4">
-                <div className="flex items-center gap-2 opacity-40">
-                    <Info className="h-3 w-3" />
-                    <span className="text-[9px] uppercase tracking-widest font-black">Technical Brief</span>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed font-light">
-                  {photo.description || "Visual documentation for the Dishpatch culinary system."}
-                </p>
-            </div>
-
-            <div className="pt-8">
-              <div className="flex items-center gap-4 p-4 bg-foreground/[0.03] border border-foreground/5">
-                <div className="h-10 w-10 bg-primary/10 flex items-center justify-center">
-                  <ChefHat className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                   <p className="text-[8px] uppercase tracking-[0.2em] opacity-40">Curated By</p>
-                   <p className="text-[10px] font-black uppercase tracking-tighter">
-                     {photo.chef?.display_name || "Collective Artisan"}
-                   </p>
-                </div>
-              </div>
-            </div>
-         </div>
+      {/* Image Stage (Left/Top) */}
+      <div className="flex-1 h-[60vh] lg:h-full p-8 md:p-16 flex items-center justify-center relative relative group">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0, filter: "blur(10px)" }}
+          animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+          className="relative w-full h-full flex items-center justify-center"
+        >
+          <img 
+            src={photo.image_url} 
+            className="max-w-full max-h-full object-contain shadow-2xl drop-shadow-[0_0_40px_rgba(0,0,0,0.2)]" 
+            alt={photo.title} 
+          />
+        </motion.div>
       </div>
+
+      {/* Editorial Sidebar (Right/Bottom) */}
+      <motion.div 
+        initial={{ x: 50, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
+        className="w-full lg:w-[450px] xl:w-[500px] h-[40vh] lg:h-full bg-foreground/[0.02] border-t lg:border-t-0 lg:border-l border-foreground/10 p-8 lg:p-16 flex flex-col justify-center relative overflow-y-auto"
+      >
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 to-transparent" />
+
+        <div className="space-y-8">
+          {/* Title Area */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 opacity-40">
+              <Fingerprint className="h-3 w-3" />
+              <span className="text-[9px] uppercase tracking-[0.3em] font-black">Asset Identity</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif italic tracking-tight leading-[0.9]">
+              {photo.title || "Untitled"}
+            </h2>
+          </div>
+          
+          <div className="h-px w-12 bg-foreground/20" />
+          
+          {/* Description Area */}
+          <div className="space-y-3">
+             <h3 className="text-[9px] uppercase tracking-[0.2em] font-bold opacity-40">
+               Description
+             </h3>
+             <p className="text-sm md:text-base text-muted-foreground leading-relaxed font-light">
+               {photo.description || "No visual documentation or brief provided for this asset."}
+             </p>
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }

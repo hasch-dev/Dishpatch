@@ -1,9 +1,8 @@
-// proxy.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
+export async function proxy(request: NextRequest) {
+  let response = NextResponse.next({
     request,
   })
 
@@ -15,51 +14,86 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
+
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          )
-          supabaseResponse = NextResponse.next({
-            request,
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          )
         },
       },
     },
   )
 
-  // This is the "hassle-killer": it refreshes the session automatically
-  const { data: { user } } = await supabase.auth.getUser()
+  /**
+   * IMPORTANT:
+   * Always call getUser() immediately after creating the client.
+   * This refreshes expired sessions automatically.
+   */
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  const path = request.nextUrl.pathname
+  const pathname = request.nextUrl.pathname
 
-  // Public Home Page
-  if (path === '/') {
-    return supabaseResponse
-  }
+  /**
+   * PUBLIC ROUTES
+   */
+  const publicRoutes = [
+    '/',
+    '/auth/login',
+    '/auth/sign-up',
+  ]
 
-  // App Gate: Redirect to login if trying to access dashboard/booking without a session
-  const isAppRoute = path.startsWith('/dashboard') || 
-                     path.startsWith('/booking') || 
-                     path.startsWith('/protected')
+  const isPublicRoute = publicRoutes.some((route) =>
+    pathname === route || pathname.startsWith(`${route}/`),
+  )
 
-  if (isAppRoute && !user) {
+  /**
+   * PROTECTED ROUTES
+   */
+  const protectedRoutes = [
+    '/dashboard',
+    '/booking',
+    '/protected',
+  ]
+
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route),
+  )
+
+  /**
+   * Redirect unauthenticated users
+   */
+  if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)
   }
 
-  // Auth Gate: Redirect to dashboard if user is already logged in
-  const isAuthRoute = path.startsWith('/auth/login') || 
-                      path.startsWith('/auth/sign-up')
+  /**
+   * Prevent authenticated users from visiting auth pages
+   */
+  const isAuthPage =
+    pathname.startsWith('/auth/login') ||
+    pathname.startsWith('/auth/sign-up')
 
-  if (isAuthRoute && user) {
+  if (isAuthPage && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
-  return supabaseResponse
+  return response
+}
+
+/**
+ * Run proxy on all routes except:
+ * - static files
+ * - images
+ * - favicon
+ */
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

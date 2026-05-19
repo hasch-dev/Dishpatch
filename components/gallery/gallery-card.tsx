@@ -35,7 +35,7 @@ export function GalleryCard({
         <div className="flex items-center gap-2">
           <div className="h-[1px] w-4 bg-primary/40" />
           <p className="text-[9px] font-serif italic text-muted-foreground uppercase tracking-widest">
-            {photo.category || "Chef’s Selection"}
+            {photo.description || "Chef’s Selection"}
           </p>
         </div>
       </div>

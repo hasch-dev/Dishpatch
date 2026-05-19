@@ -36,10 +36,10 @@ export default function GalleryPage() {
       
       <FloatingNav />
       
-      <main className="w-full px-6 md:px-12 lg:px-20 pt-32 pb-32">
+      <main className="flex-1 md:pl-32 pt-8 md:pt-16 px-6 md:px-12 pb-32">
         <header className="mb-20 max-w-2xl">
-          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none">
-            The <span className="text-primary italic font-serif">Portfolio</span>
+          <h1 className="text-4xl md:text-[80px] font-black uppercase tracking-tighter leading-[0.8]">
+            Culinary <span className="text-primary italic font-serif"><br />Gallery</span>
           </h1>
           <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground mt-4 ml-1">
             Visual Registry of Private Dining Experiences
