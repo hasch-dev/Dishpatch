@@ -1,10 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-
-import { subscribeConversation } from "@/lib/messaging/subscribe-conversation"
-
-import { MessageBubble } from "./message-bubble"
+import { useEffect, useRef } from "react"
+import { MessageItem } from "./message-item"
 
 interface Props {
   messages: any[]
@@ -12,47 +9,28 @@ interface Props {
 }
 
 export function ConversationFeed({
-  messages: initialMessages,
+  messages,
   currentUserId,
 }: Props) {
-  const [messages, setMessages] = useState(initialMessages)
+  const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setMessages(initialMessages)
-  }, [initialMessages])
-
-  useEffect(() => {
-    if (!initialMessages?.[0]?.conversation_id) return
-
-    const channel = subscribeConversation(
-      initialMessages[0].conversation_id,
-      (payload) => {
-        setMessages((prev) => {
-          const exists = prev.some(
-            (message) => message.id === payload.new.id
-          )
-
-          if (exists) return prev
-
-          return [...prev, payload.new]
-        })
-      }
-    )
-
-    return () => {
-      channel.unsubscribe()
-    }
-  }, [initialMessages])
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    })
+  }, [messages])
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-4">
       {messages.map((message) => (
-        <MessageBubble
+        <MessageItem
           key={message.id}
           message={message}
-          isOwn={message.sender_id === currentUserId}
+          currentUserId={currentUserId}
         />
       ))}
+
+      <div ref={bottomRef} />
     </div>
   )
 }

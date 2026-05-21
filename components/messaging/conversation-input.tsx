@@ -1,54 +1,54 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
+import { Send } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 import { sendMessage } from "@/lib/messaging/send-message"
 
+interface Props {
+  conversationId: string
+}
+
 export function ConversationInput({
   conversationId,
-}: {
-  conversationId: string
-}) {
-  const [message, setMessage] = useState("")
-  const [pending, startTransition] = useTransition()
+}: Props) {
+  const [value, setValue] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleSend = async () => {
-    if (!message.trim()) return
+  async function handleSend() {
+    if (!value.trim()) return
 
-    const content = message
+    try {
+      setLoading(true)
 
-    setMessage("")
-
-    startTransition(async () => {
       await sendMessage({
         conversationId,
-        content,
+        content: value,
       })
-    })
+
+      setValue("")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="border-t p-4 flex gap-2">
-      <input
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
+    <div className="border-t border-border p-4 flex gap-3">
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         placeholder="Type a message..."
-        className="flex-1 border rounded-md px-4 py-3"
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault()
-            handleSend()
-          }
-        }}
       />
 
-      <button
+      <Button
         onClick={handleSend}
-        disabled={pending}
-        className="px-4 py-2 rounded-md bg-black text-white"
+        disabled={loading || !value.trim()}
       >
-        Send
-      </button>
+        <Send className="h-4 w-4" />
+      </Button>
     </div>
   )
 }

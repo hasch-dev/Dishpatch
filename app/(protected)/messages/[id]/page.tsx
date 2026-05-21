@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 
-import { fetchConversation } from "@/lib/messaging/fetch-conversation"
-import { markConversationRead } from "@/lib/messaging/mark-conversation-read"
+import { fetchConversation } from "@/lib/messaging/fetch-conversations"
 
 import { ConversationFeed } from "@/components/messaging/conversation-feed"
 import { ConversationInput } from "@/components/messaging/conversation-input"
@@ -30,8 +29,6 @@ export default async function ConversationPage({
       </div>
     )
   }
-
-  await markConversationRead(id)
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
