@@ -1,15 +1,31 @@
-import { MessageCircle } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
+import { fetchConversations } from "@/lib/messaging/fetch-conversations"
+import { ConversationList } from "@/components/messaging/conversation-list"
+import { EmptyState } from "@/components/messaging/empty-state" // Import the new component
 
-export default function MessagesPlaceholder() {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-background">
-      <div className="h-20 w-20 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center mb-6 shadow-inner">
-        <MessageCircle className="h-8 w-8 text-primary/40" />
+export default async function MessagesPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const conversations = await fetchConversations()
+
+  // Handle empty state gracefully
+  if (conversations.length === 0) {
+    return (
+      <div className="h-full w-full">
+        <EmptyState />
       </div>
-      <h2 className="font-serif italic text-3xl text-foreground tracking-tight">The Communications Suite</h2>
-      <p className="text-muted-foreground max-w-sm mt-4 font-light leading-relaxed">
-        Select an active consultation from the sidebar to review your message history, negotiate terms, or speak with the Concierge.
-      </p>
+    )
+  }
+
+  return (
+    <div className="h-full overflow-hidden">
+      <ConversationList
+        conversations={conversations}
+        currentUserId={user.id}
+      />
     </div>
   )
 }
