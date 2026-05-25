@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { 
-  Search, Send, ArrowRight, PackageOpen, X, Info, LayoutGrid, FileText, CheckCircle2, AlertCircle
+  Search, Send, ArrowRight, PackageOpen, X, Info, LayoutGrid, FileText, CheckCircle2, AlertCircle, Clock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,15 +29,57 @@ export default function ProductsPage() {
   
   const [user, setUser] = useState<any>(null);
 
+  // --- LIVE INVENTORY & DATA FETCHING ---
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
-      const { data } = await supabase.from("products").select("*").order("name");
-      if (data) setProducts(data);
+      // 1. Fetch public products (ignoring hidden ones)
+      const { data: pData } = await supabase
+        .from("products")
+        .select("*")
+        .eq("is_hidden", false)
+        .order("name");
+
+      // 2. Fetch the live stock calculations from our view
+      const { data: sData } = await supabase
+        .from("product_stock_view")
+        .select("id, current_stock");
+
+      if (pData) {
+        // Merge the live stock number into the product object
+        const merged = pData.map(p => ({
+          ...p,
+          current_stock: sData?.find((s: any) => s.id === p.id)?.current_stock || 0
+        }));
+        setProducts(merged);
+
+        // If a product is currently open in the dossier, update it too
+        setSelectedProduct((current: any) => {
+          if (!current) return null;
+          return merged.find(m => m.id === current.id) || current;
+        });
+      }
     };
+
     fetchData();
+
+    // 3. The Silent Refresher: Listen for admin inventory updates in the background
+    const channel = supabase
+      .channel("live-inventory")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inventory_transactions" },
+        () => {
+          fetchData(); // Silently re-fetch and trigger Framer Motion animations
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [supabase]);
 
   // --- IMAGE BUCKET HELPER ---
@@ -87,17 +129,22 @@ export default function ProductsPage() {
     } else {
       setInquiryStatus("success");
       setInquiryText("");
-      // Reset success message after 4 seconds
       setTimeout(() => setInquiryStatus("idle"), 4000);
     }
   };
 
-  // When opening a new product, reset tabs and form states
   const handleSelectProduct = (product: any) => {
     setSelectedProduct(product);
     setActiveTab("overview");
     setInquiryStatus("idle");
     setInquiryText("");
+  };
+
+  // Helper for dynamic stock colors
+  const getStockColor = (status: string) => {
+    if (status === 'Out of Stock') return "bg-destructive/10 text-destructive border-destructive/20";
+    if (status === 'Low Stock') return "bg-amber-500/10 text-amber-500 border-amber-500/20";
+    return "bg-background/90 text-foreground border-foreground/10";
   };
 
   return (
@@ -178,7 +225,11 @@ export default function ProductsPage() {
                       No Media
                     </div>
                   )}
-                  <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm text-foreground px-3 py-1.5 text-[9px] font-black uppercase tracking-widest shadow-sm">
+                  {/* Dynamic Status Badge */}
+                  <div className={cn(
+                    "absolute top-4 right-4 backdrop-blur-md px-3 py-1.5 text-[9px] font-black uppercase tracking-widest shadow-sm border",
+                    getStockColor(product.stock_status)
+                  )}>
                     {product.stock_status || "Unknown"}
                   </div>
                 </div>
@@ -192,10 +243,25 @@ export default function ProductsPage() {
                       {product.name}
                     </h4>
                   </div>
+                  
+                  {/* Price and Animated Stock Count */}
                   <div className="mt-auto pt-4 flex justify-between items-end">
-                    <span className="font-serif italic text-xl text-muted-foreground group-hover:text-foreground transition-colors">
-                      ${product.price?.toLocaleString()}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-serif italic text-xl text-muted-foreground group-hover:text-foreground transition-colors">
+                        ${product.price?.toLocaleString()}
+                      </span>
+                      <div className="flex items-center gap-2 overflow-hidden text-muted-foreground">
+                        <motion.span 
+                          key={product.current_stock}
+                          initial={{ y: -10, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          className="text-xs font-bold"
+                        >
+                          {Math.max(0, product.current_stock)}
+                        </motion.span>
+                        <span className="text-[8px] uppercase tracking-widest">Units Available</span>
+                      </div>
+                    </div>
                     <ArrowRight className="h-5 w-5 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
                   </div>
                 </div>
@@ -221,7 +287,6 @@ export default function ProductsPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] bg-background/98 backdrop-blur-3xl overflow-y-auto custom-scrollbar flex flex-col md:flex-row"
           >
-            {/* Global Close Button (Moved to top right of screen for safety) */}
             <button 
               onClick={() => setSelectedProduct(null)} 
               className="fixed top-6 right-6 md:top-8 md:right-8 z-[210] bg-background/50 backdrop-blur-md border border-foreground/10 text-foreground p-3 rounded-full hover:bg-foreground hover:text-background transition-all group"
@@ -248,19 +313,31 @@ export default function ProductsPage() {
             <div className="flex-1 p-8 md:p-16 lg:p-24 flex flex-col min-h-screen">
               
               <header className="space-y-6 mb-12">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="text-[9px] font-black uppercase tracking-[0.3em] px-3 py-1.5 bg-foreground text-background">
                     {selectedProduct.category}
                   </span>
                   <span className={cn(
-                    "text-[9px] font-black uppercase tracking-[0.3em] border px-3 py-1.5",
-                    selectedProduct.stock_status?.toLowerCase().includes("in stock") 
-                      ? "border-green-500/30 text-green-600 dark:text-green-400" 
-                      : "border-red-500/30 text-red-600 dark:text-red-400"
+                    "text-[9px] font-black uppercase tracking-[0.3em] border px-3 py-1.5 flex items-center gap-2",
+                    getStockColor(selectedProduct.stock_status)
                   )}>
                     {selectedProduct.stock_status}
                   </span>
+                  
+                  {/* Live Dossier Stock Count */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 border border-foreground/10 text-[9px] font-black uppercase tracking-[0.3em]">
+                    <span className="text-muted-foreground">Vol:</span>
+                    <motion.span 
+                      key={selectedProduct.current_stock}
+                      initial={{ scale: 1.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-primary"
+                    >
+                      {Math.max(0, selectedProduct.current_stock)}
+                    </motion.span>
+                  </div>
                 </div>
+                
                 <h2 className="text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9]">
                   {selectedProduct.name}
                 </h2>
@@ -338,7 +415,6 @@ export default function ProductsPage() {
                             disabled={isSending || inquiryStatus === "success"}
                           />
 
-                          {/* Dynamic Feedback UI */}
                           {inquiryStatus === "unauthorized" && (
                             <div className="flex items-center gap-2 text-destructive text-xs font-bold uppercase tracking-wider p-3 bg-destructive/10 border border-destructive/20">
                               <AlertCircle size={14} /> System Auth Required: Please log in first.
@@ -369,15 +445,12 @@ export default function ProductsPage() {
                       </div>
                     </motion.div>
                   )}
-
                 </AnimatePresence>
               </div>
-              
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }

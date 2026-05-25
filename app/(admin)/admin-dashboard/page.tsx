@@ -32,7 +32,7 @@ export default async function AdminDashboard() {
     {
       title: "Inquiry Feed",
       desc: "Review and respond to incoming client transmissions.",
-      href: "/admin-inquiries",
+      href: "/messages",
       icon: MessageSquare
     }
   ];
