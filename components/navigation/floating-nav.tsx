@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Image as ImageIcon, PackageOpen, Sun, Moon } from "lucide-react";
+import { Home, Image as ImageIcon, PackageOpen, Sun, Moon, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
@@ -15,6 +15,9 @@ export default function FloatingNav() {
   const pathname = usePathname();
 
   useEffect(() => setMounted(true), []);
+
+  // Optional: Hide this nav completely if a customer is looking at the public stockhouse
+  // if (pathname === "/stockhouse") return null;
 
   return (
     <motion.div 
@@ -45,6 +48,14 @@ export default function FloatingNav() {
           pathname === "/products" ? "bg-foreground text-background" : "hover:bg-foreground hover:text-background"
         )}>
           <PackageOpen className="h-4 w-4" />
+        </Button>
+      </Link>
+      <Link href="/stockhouse">
+        <Button variant="ghost" size="icon" className={cn(
+          "rounded-full h-10 w-10 transition-colors",
+          pathname === "/stockhouse" ? "bg-foreground text-background" : "hover:bg-foreground hover:text-background"
+        )}>
+          <Store className="h-4 w-4" />
         </Button>
       </Link>
 

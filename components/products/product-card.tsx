@@ -10,9 +10,16 @@ interface ProductCardProps {
   onClick: () => void;
   resolveImageUrl: (path: string | null) => string | null;
   getStockColor: (status: string) => string;
+  viewMode?: "grid" | "list";
 }
 
-export function ProductCard({ product, onClick, resolveImageUrl, getStockColor }: ProductCardProps) {
+export function ProductCard({ 
+  product, 
+  onClick, 
+  resolveImageUrl, 
+  getStockColor,
+  viewMode = "grid"
+}: ProductCardProps) {
   const imageUrl = resolveImageUrl(product.image_url);
   
   return (
@@ -23,10 +30,18 @@ export function ProductCard({ product, onClick, resolveImageUrl, getStockColor }
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       onClick={onClick}
-      className="group cursor-pointer flex flex-col h-full"
+      className={cn(
+        "group cursor-pointer flex",
+        viewMode === "list" 
+          ? "flex-row gap-4 md:gap-8 h-32 md:h-48 items-center border border-foreground/10 p-3 md:p-4 hover:border-foreground/30 transition-colors bg-background" 
+          : "flex-col h-full"
+      )}
     >
       {/* Visual Frame Wrapper */}
-      <div className="aspect-[4/3] bg-muted mb-6 overflow-hidden relative border border-foreground/5 group-hover:border-foreground/20 transition-colors">
+      <div className={cn(
+        "bg-muted overflow-hidden relative border border-foreground/5 group-hover:border-foreground/20 transition-colors shrink-0",
+        viewMode === "list" ? "w-28 md:w-48 h-full" : "aspect-[4/3] mb-6 w-full"
+      )}>
         {imageUrl ? (
           <>
             <Image 
@@ -47,7 +62,8 @@ export function ProductCard({ product, onClick, resolveImageUrl, getStockColor }
         
         {/* Dynamic Status Badge */}
         <div className={cn(
-          "absolute top-4 right-4 backdrop-blur-md px-3 py-1.5 text-[9px] font-black uppercase tracking-widest shadow-sm border z-10",
+          "absolute backdrop-blur-md px-3 py-1.5 text-[9px] font-black uppercase tracking-widest shadow-sm border z-10",
+          viewMode === "list" ? "top-2 left-2 md:top-3 md:left-3" : "top-4 right-4",
           getStockColor(product.stock_status)
         )}>
           {product.stock_status || "Unknown"}
@@ -55,18 +71,27 @@ export function ProductCard({ product, onClick, resolveImageUrl, getStockColor }
       </div>
       
       {/* Metadata Typography Stack */}
-      <div className="space-y-2 flex-1 flex flex-col">
-        <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary">
+      <div className={cn(
+        "flex-1 flex flex-col",
+        viewMode === "list" ? "h-full py-1 md:py-2" : "space-y-2"
+      )}>
+        <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary mb-1 md:mb-2">
           {product.category || "Uncategorized"}
         </span>
         <div className="flex justify-between items-start gap-4">
-          <h4 className="text-2xl font-black uppercase tracking-tighter leading-none">
+          <h4 className={cn(
+            "font-black uppercase tracking-tighter leading-none",
+            viewMode === "list" ? "text-xl md:text-3xl" : "text-2xl"
+          )}>
             {product.name}
           </h4>
         </div>
         
         {/* Pricing & Realtime Cached Volumes */}
-        <div className="mt-auto pt-4 flex justify-between items-end">
+        <div className={cn(
+          "flex justify-between items-end",
+          viewMode === "list" ? "mt-auto" : "mt-auto pt-4"
+        )}>
           <div className="flex flex-col gap-1">
             <span className="font-serif italic text-xl text-muted-foreground group-hover:text-foreground transition-colors">
               ${Number(product.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
