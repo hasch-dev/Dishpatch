@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { 
   ChevronRight, LayoutDashboard, Package, MessageSquare, 
-  LogOut, Search, Terminal, Image as ImageIcon, Sun, Moon, Home 
+  LogOut, Search, Terminal, Image as ImageIcon, Sun, Moon, Home, Boxes, Truck 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
@@ -22,6 +22,8 @@ export default function AdminSidebar() {
   const navItems = [
     { icon: LayoutDashboard, label: "Overview", href: "/admin-dashboard" },
     { icon: Package, label: "Admin Products", href: "/admin-products" },
+    { icon: Boxes, label: "Inventory Ledger", href: "/inventory" },
+    { icon: Truck, label: "Distributions", href: "/distributions" }, // Added Distributions Routing Frame
     { icon: ImageIcon, label: "Admin Gallery", href: "/admin-gallery" },
     { icon: MessageSquare, label: "Inquiry Feed", href: "/admin-inquiries" },
   ];

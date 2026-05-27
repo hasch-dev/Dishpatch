@@ -1,0 +1,277 @@
+.
+├── AGENTS.md
+├── app
+│   ├── actions
+│   │   ├── booking-actions.ts
+│   │   ├── inventory-actions.ts
+│   │   ├── mark-read.ts
+│   │   └── send-message.ts
+│   ├── (additionals)
+│   │   ├── gallery
+│   │   └── products
+│   ├── (admin)
+│   │   ├── admin-dashboard
+│   │   ├── inventory
+│   │   ├── layout.tsx
+│   │   └── (nav-admin-pages)
+│   ├── api
+│   │   ├── bookings
+│   │   ├── chats
+│   │   ├── chefs
+│   │   ├── deals
+│   │   ├── payments
+│   │   ├── profile
+│   │   └── proposals
+│   ├── auth
+│   │   ├── actions.ts
+│   │   ├── callback
+│   │   ├── error
+│   │   ├── forgot-password
+│   │   ├── login
+│   │   ├── sign-up
+│   │   ├── sign-up-success
+│   │   └── update-password
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── (protected)
+│       ├── calendar
+│       ├── (chef)
+│       ├── layout.tsx
+│       ├── messages
+│       ├── partners
+│       ├── payments
+│       ├── profile
+│       ├── settings
+│       └── (user)
+├── CLAUDE.md
+├── components
+│   ├── accept-quote-dialog.tsx
+│   ├── admin
+│   │   ├── add-product-dialog.tsx
+│   │   ├── admin-sidebar.tsx
+│   │   ├── gallery-registry-table.tsx
+│   │   ├── product-actions.tsx
+│   │   ├── product-table.tsx
+│   │   └── upload-gallery-dialog.tsx
+│   ├── app-sidebar.tsx
+│   ├── booking
+│   │   ├── booking-footer.tsx
+│   │   ├── booking-header.tsx
+│   │   ├── consultation
+│   │   ├── luxury-summary.tsx
+│   │   ├── private-event
+│   │   ├── shared
+│   │   └── StepAnimation.tsx
+│   ├── booking-dossier-panel.tsx
+│   ├── catalog
+│   │   └── culinary-catalog.tsx
+│   ├── chat
+│   │   └── ChefQuoteAction.tsx
+│   ├── chef
+│   │   └── marketplace-card.tsx
+│   ├── footer.tsx
+│   ├── forgot-password-form.tsx
+│   ├── gallery
+│   │   ├── empty-state.tsx
+│   │   ├── gallery-card.tsx
+│   │   ├── gallery-skeleton.tsx
+│   │   ├── masonry-grid.tsx
+│   │   └── photo-lightbox.tsx
+│   ├── inventory
+│   │   ├── live-inventory-refresher.tsx
+│   │   ├── public-stock-grid.tsx
+│   │   └── stock-card.tsx
+│   ├── item-editor-overlay.tsx
+│   ├── login-form.tsx
+│   ├── logo-dispatch.tsx
+│   ├── logo-text-dark.tsx
+│   ├── logo-text-light.tsx
+│   ├── menu
+│   │   ├── a-la-carte-editor.tsx
+│   │   ├── catalog-card.tsx
+│   │   ├── catalog-item-detail-popup.tsx
+│   │   ├── creation-type-picker.tsx
+│   │   ├── grouped-menu-editor.tsx
+│   │   ├── ingredient-selector.tsx
+│   │   └── pricing-strategy-input.tsx
+│   ├── messaging
+│   │   ├── booking-context-sidebar.tsx
+│   │   ├── booking-sidebar.tsx
+│   │   ├── chat-header.tsx
+│   │   ├── conversation-client.tsx
+│   │   ├── conversation-feed.tsx
+│   │   ├── conversation-header.tsx
+│   │   ├── conversation-input.tsx
+│   │   ├── conversation-item.tsx
+│   │   ├── conversation-list-item.tsx
+│   │   ├── conversation-list.tsx
+│   │   ├── conversation-shell.tsx
+│   │   ├── empty-state.tsx
+│   │   ├── inbox-item.tsx
+│   │   ├── inbox-list.tsx
+│   │   ├── inbox-shell.tsx
+│   │   ├── message-bubble.tsx
+│   │   ├── message-input.tsx
+│   │   ├── message-item.tsx
+│   │   ├── support-context-sidebar.tsx
+│   │   ├── support-sidebar.tsx
+│   │   └── unread-badge.tsx
+│   ├── mobile-sidebar.tsx
+│   ├── modify-terms-dialog.tsx
+│   ├── navbar.tsx
+│   ├── navigation
+│   │   └── floating-nav.tsx
+│   ├── password-strength-indicator.tsx
+│   ├── products
+│   │   └── product-card.tsx
+│   ├── sidebar.tsx
+│   ├── theme-provider.tsx
+│   ├── theme-toggle.tsx
+│   ├── ui
+│   │   ├── accordion.tsx
+│   │   ├── alert-dialog.tsx
+│   │   ├── alert.tsx
+│   │   ├── app-sidebar.tsx
+│   │   ├── aspect-ratio.tsx
+│   │   ├── avatar.tsx
+│   │   ├── badge.tsx
+│   │   ├── breadcrumb.tsx
+│   │   ├── button-group.tsx
+│   │   ├── button.tsx
+│   │   ├── calendar.tsx
+│   │   ├── card.tsx
+│   │   ├── carousel.tsx
+│   │   ├── chart.tsx
+│   │   ├── checkbox.tsx
+│   │   ├── collapsible.tsx
+│   │   ├── command.tsx
+│   │   ├── context-menu.tsx
+│   │   ├── dialog.tsx
+│   │   ├── drawer.tsx
+│   │   ├── dropdown-menu.tsx
+│   │   ├── empty.tsx
+│   │   ├── field.tsx
+│   │   ├── form.tsx
+│   │   ├── hover-card.tsx
+│   │   ├── input-group.tsx
+│   │   ├── input-otp.tsx
+│   │   ├── input.tsx
+│   │   ├── item.tsx
+│   │   ├── kbd.tsx
+│   │   ├── label.tsx
+│   │   ├── menubar.tsx
+│   │   ├── navigation-menu.tsx
+│   │   ├── pagination.tsx
+│   │   ├── phone-input.tsx
+│   │   ├── popover.tsx
+│   │   ├── progress.tsx
+│   │   ├── radio-group.tsx
+│   │   ├── resizable.tsx
+│   │   ├── scroll-area.tsx
+│   │   ├── select.tsx
+│   │   ├── separator.tsx
+│   │   ├── sheet.tsx
+│   │   ├── sidebar.tsx
+│   │   ├── skeleton.tsx
+│   │   ├── slider.tsx
+│   │   ├── sonner.tsx
+│   │   ├── spinner.tsx
+│   │   ├── switch.tsx
+│   │   ├── table.tsx
+│   │   ├── tabs.tsx
+│   │   ├── textarea.tsx
+│   │   ├── toaster.tsx
+│   │   ├── toast.tsx
+│   │   ├── toggle-group.tsx
+│   │   ├── toggle.tsx
+│   │   ├── tooltip.tsx
+│   │   ├── use-mobile.tsx
+│   │   └── use-toast.ts
+│   ├── update-password-form.tsx
+│   └── visual
+│       └── section.tsx
+├── components.json
+├── constants
+│   ├── booking-data.ts
+│   ├── classifications.ts
+│   ├── culinary-styles.ts
+│   ├── food-categories.ts
+│   ├── ingredients.ts
+│   └── product-classifications.ts
+├── eslint.config.mjs
+├── hooks
+│   ├── use-conversation-realtime.ts
+│   ├── use-conversation.ts
+│   ├── use-inbox-realtime.ts
+│   ├── use-inbox.ts
+│   ├── use-mobile.ts
+│   └── use-toast.ts
+├── lib
+│   ├── billing-gate.ts
+│   ├── email-validation.ts
+│   ├── getProfile.ts
+│   ├── messaging
+│   │   ├── create-support.ticket.ts
+│   │   ├── fetch-conversation.ts
+│   │   ├── fetch-messages.ts
+│   │   ├── mark-conversation-read.ts
+│   │   ├── send-message.ts
+│   │   ├── subscribe-conversation.ts
+│   │   └── subscribe.ts
+│   ├── password-validation.ts
+│   ├── supabase
+│   │   ├── admin.ts
+│   │   ├── client.ts
+│   │   ├── middleware.ts
+│   │   ├── proxy.ts
+│   │   └── server.ts
+│   ├── useRequireAuth.ts
+│   └── utils.ts
+├── next.config.mjs
+├── next.config.ts
+├── next-env.d.ts
+├── package.json
+├── package-lock.json
+├── pnpm-lock.yaml
+├── pnpm-workspace.yaml
+├── postcss.config.mjs
+├── public
+│   ├── dishpatch-pics
+│   │   ├── 10.jpg
+│   │   ├── 11.jpg
+│   │   ├── 12.jpg
+│   │   ├── 13.jpg
+│   │   ├── 14.jpg
+│   │   ├── 15.jpg
+│   │   ├── 16.jpg
+│   │   ├── 17.jpg
+│   │   ├── 18.jpg
+│   │   ├── 19.jpg
+│   │   ├── 1.jpg
+│   │   ├── 20.jpg
+│   │   ├── 2.jpg
+│   │   ├── 3.jpg
+│   │   ├── 4.jpg
+│   │   ├── 5.jpg
+│   │   ├── 6.jpg
+│   │   ├── 7.jpg
+│   │   ├── 8.jpg
+│   │   └── 9.jpg
+│   └── images
+│       ├── darklogotext.png
+│       ├── dishpatchlogo.png
+│       └── lightlogotext.png
+├── README.md
+├── scripts
+│   ├── 001_create_tables.sql
+│   ├── 002_create_trigger.sql
+│   ├── 003_add_chef_consultation.sql
+│   └── 004_add_service_type.sql
+├── structure.txt
+├── styles
+│   └── globals.css
+├── test
+└── tsconfig.json
+
+62 directories, 213 files
