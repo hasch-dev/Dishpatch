@@ -11,7 +11,7 @@ interface MatrixControlsProps {
   setSearchQuery: (val: string) => void;
   sortBy: string;
   setSortBy: (val: string) => void;
-  selectedMonth: number; // 1-12
+  selectedMonth: number; 
   setSelectedMonth: (val: number) => void;
   selectedYear: number;
   setSelectedYear: (val: number) => void;
@@ -35,62 +35,63 @@ export default function MatrixControls({
   selectedYear, setSelectedYear
 }: MatrixControlsProps) {
   return (
-    <div className="bg-card border border-border/60 p-4 rounded-2xl shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between w-full">
+    <div className="bg-card/40 border border-border/40 p-3 md:p-4 rounded-3xl shadow-sm hover:shadow-md hover:border-border/60 transition-all flex flex-col lg:flex-row gap-4 items-center justify-between w-full">
       
-      {/* Search Input - Expanded max-w and shifted to h-10 */}
-      <div className="relative w-full lg:max-w-sm">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+      {/* Search Bar */}
+      <div className="relative w-full lg:max-w-md">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
         <Input 
-          placeholder="Search inventory items..."
+          placeholder="Search products in ledger..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-10 rounded-xl border-border/60 text-xs sm:text-sm bg-muted/10 w-full"
+          className="pl-11 h-12 rounded-2xl border-border/50 bg-background/50 text-sm focus-visible:ring-primary/20 w-full transition-all"
         />
       </div>
 
-      {/* Selectors and Sorting Matrix - Relaxed gaps for cleaner separation */}
-      <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+      {/* Selectors Group */}
+      <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
         
-        {/* Month Selector - Upgraded trigger size and expanded width constraint */}
-        <div className="flex items-center gap-1.5">
-          <Calendar className="h-4 w-4 text-primary mr-0.5" />
+        {/* Month Selector */}
+        <div className="flex items-center bg-background/50 rounded-2xl border border-border/50 pr-1 transition-all focus-within:ring-2 focus-within:ring-primary/20">
+          <div className="pl-3.5 pr-1 py-3 text-primary/80">
+            <Calendar className="h-4 w-4" />
+          </div>
           <Select value={String(selectedMonth)} onValueChange={(val) => setSelectedMonth(Number(val))}>
-            <SelectTrigger className="h-10 w-[140px] rounded-xl border-border/60 text-xs sm:text-sm bg-transparent px-3">
+            <SelectTrigger className="h-12 w-[130px] border-0 focus:ring-0 text-sm bg-transparent px-2">
               <SelectValue placeholder="Month" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl text-xs sm:text-sm">
+            <SelectContent className="rounded-2xl">
               {MONTHS.map((m) => (
-                <SelectItem key={m.value} value={String(m.value)} className="text-xs sm:text-sm">{m.label}</SelectItem>
+                <SelectItem key={m.value} value={String(m.value)} className="rounded-xl">{m.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Year Selector - Shifted to h-10 */}
+        {/* Year Selector */}
         <Select value={String(selectedYear)} onValueChange={(val) => setSelectedYear(Number(val))}>
-          <SelectTrigger className="h-10 w-[95px] rounded-xl border-border/60 text-xs sm:text-sm bg-transparent px-3">
+          <SelectTrigger className="h-12 w-[100px] rounded-2xl border-border/50 bg-background/50 text-sm focus:ring-primary/20 transition-all">
             <SelectValue placeholder="Year" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl text-xs sm:text-sm">
+          <SelectContent className="rounded-2xl">
             {YEARS.map((y) => (
-              <SelectItem key={y} value={String(y)} className="text-xs sm:text-sm">{y}</SelectItem>
+              <SelectItem key={y} value={String(y)} className="rounded-xl">{y}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Scaled structural divider height to match the h-10 elements */}
-        <div className="w-[1px] h-6 bg-border/60 mx-1 hidden sm:block" />
+        <div className="w-[1px] h-8 bg-border/40 mx-2 hidden sm:block" />
 
-        {/* Sort Controls - Expanded to w-[160px] to give text clean alignment */}
+        {/* Sort Controls */}
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="h-10 w-[160px] rounded-xl border-border/60 text-xs sm:text-sm bg-transparent px-3">
-            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
-            <SelectValue placeholder="Sort Rows" />
+          <SelectTrigger className="h-12 w-[180px] rounded-2xl border-border/50 bg-background/50 text-sm focus:ring-primary/20 transition-all">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground mr-2" />
+            <SelectValue placeholder="Sort Method" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl text-xs sm:text-sm">
-            <SelectItem value="name-asc" className="text-xs sm:text-sm">Name: A to Z</SelectItem>
-            <SelectItem value="name-desc" className="text-xs sm:text-sm">Name: Z to A</SelectItem>
-            <SelectItem value="volume-desc" className="text-xs sm:text-sm">Total Out: High-Low</SelectItem>
+          <SelectContent className="rounded-2xl">
+            <SelectItem value="name-asc" className="rounded-xl">Name: A to Z</SelectItem>
+            <SelectItem value="name-desc" className="rounded-xl">Name: Z to A</SelectItem>
+            <SelectItem value="volume-desc" className="rounded-xl">Highest Volume Out</SelectItem>
           </SelectContent>
         </Select>
 

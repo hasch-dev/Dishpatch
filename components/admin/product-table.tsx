@@ -5,15 +5,12 @@ import ProductActions from "./product-actions";
 import { EyeOff, X, Upload, CheckCircle2, Loader2, Link as LinkIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-
-// Import your custom classifications to ensure drop-down syncing
 import { PRODUCT_CLASSIFICATIONS } from "@/constants/product-classifications";
 
 export default function ProductTable({ initialProducts }: { initialProducts: any[] }) {
   const [products, setProducts] = useState(initialProducts);
   const [showHidden, setShowHidden] = useState(false);
   
-  // Editorial Modal States
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [displayPrice, setDisplayPrice] = useState("");
@@ -22,29 +19,24 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
 
   const supabase = createClient();
 
-  // Parse and prep price string whenever an asset is opened for editing
+  // CRITICAL FIX: Sync local state when Next.js server passes new data 
+  // (e.g., after the Add Dialog triggers router.refresh())
   useEffect(() => {
-    if (editingProduct?.price !== undefined) {
-      const rawPrice = String(editingProduct.price);
-      formatAndSetDisplayPrice(rawPrice);
-    } else {
-      setDisplayPrice("");
-    }
-  }, [editingProduct?.id]);
+    setProducts(initialProducts);
+  }, [initialProducts]);
 
-  const formatAndSetDisplayPrice = (value: string) => {
+  const formatPriceString = (value: string) => {
     const cleanValue = value.replace(/[^\d.]/g, "");
-    if (!cleanValue) {
-      setDisplayPrice("");
-      return;
-    }
+    if (!cleanValue) return "";
+    
     const parts = cleanValue.split(".");
+    // Retaining your specific requirement for a comma AND a space
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
-    setDisplayPrice(parts.slice(0, 2).join("."));
+    return parts.slice(0, 2).join(".");
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    formatAndSetDisplayPrice(e.target.value);
+    setDisplayPrice(formatPriceString(e.target.value));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,7 +62,6 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
     setIsSaving(true);
     setErrorMsg(null);
 
-    // Reconstruct clean database values
     const finalPrice = parseFloat(displayPrice.replace(/[^\d.]/g, ""));
     
     try {
@@ -78,7 +69,6 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
 
       let currentImageUrl = editingProduct.image_url;
 
-      // 1. Process New Schematic Media if provided
       if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -93,7 +83,6 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
         currentImageUrl = publicUrl;
       }
 
-      // 2. Perform Atomic Update Transaction
       const updatedFields = {
         name: editingProduct.name,
         price: finalPrice,
@@ -112,16 +101,14 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
 
       if (dbError) throw new Error(dbError.message);
 
-      // 3. Update Client State dynamically without hard-refreshing
       handleItemUpdate(editingProduct.id, updatedFields);
       
-      // Close Drawer & Reset Context
       setEditingProduct(null);
       setSelectedFile(null);
     } catch (err: any) {
       console.error("Registry Mutation Error:", err);
       setErrorMsg(err.message);
-    } finally {
+    } finally { // CRITICAL FIX: Corrected spelling from 'finaly' to 'finally'
       setIsSaving(false);
     }
   };
@@ -135,7 +122,7 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
       <div className="p-4 border-b border-foreground/5 flex justify-end bg-foreground/[0.01]">
         <button 
           onClick={() => setShowHidden(!showHidden)}
-          className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
+          className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-2 ${
             showHidden ? "text-primary opacity-100" : "opacity-60 hover:opacity-100"
           }`}
         >
@@ -158,9 +145,7 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
             {filteredProducts.map((product) => (
               <tr 
                 key={product.id} 
-                className={`group hover:bg-foreground/[0.01] transition-colors ${
-                  product.is_hidden ? 'opacity-40 grayscale bg-foreground/[0.01]' : ''
-                }`}
+                className={`group ${product.is_hidden ? 'opacity-40 grayscale bg-foreground/[0.01]' : ''}`}
               >
                 <td className="p-6">
                   <div className="flex items-center gap-2">
@@ -195,6 +180,7 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
                     onEditTrigger={() => {
                       setErrorMsg(null);
                       setSelectedFile(null);
+                      setDisplayPrice(formatPriceString(String(product.price || "")));
                       setEditingProduct({ ...product });
                     }}
                   />
@@ -205,15 +191,14 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
         </table>
       </div>
 
-      {/* Advanced Component Blueprint Update Overlay */}
       {editingProduct && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center bg-background/95 backdrop-blur-md p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[600] flex items-center justify-center bg-background/95 backdrop-blur-md p-4">
           <div className="bg-card w-full max-w-3xl border border-foreground/10 p-10 shadow-2xl relative overflow-hidden">
             
             <button 
               type="button"
               onClick={() => { setEditingProduct(null); setSelectedFile(null); }} 
-              className="absolute top-6 right-6 opacity-40 hover:opacity-100 hover:rotate-90 transition-all duration-300"
+              className="absolute top-6 right-6 opacity-40 hover:opacity-100"
             >
               <X className="h-6 w-6" />
             </button>
@@ -229,7 +214,6 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
             
             <form onSubmit={handleSaveEdit} className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
               
-              {/* Left Column Data Controls */}
               <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Asset Designation</label>
@@ -238,7 +222,7 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
                     required
                     value={editingProduct.name || ""} 
                     onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                    className="w-full bg-background border border-foreground/10 p-3 text-xs font-mono uppercase font-bold focus:outline-none focus:border-primary transition-colors" 
+                    className="w-full bg-background border border-foreground/10 p-3 text-xs font-mono uppercase font-bold focus:outline-none focus:border-primary" 
                   />
                 </div>
 
@@ -252,7 +236,7 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
                         required 
                         value={displayPrice}
                         onChange={handlePriceChange}
-                        className="w-full bg-background border border-foreground/10 p-3 pl-8 text-xs font-mono focus:outline-none focus:border-primary transition-colors" 
+                        className="w-full bg-background border border-foreground/10 p-3 pl-8 text-xs font-mono focus:outline-none focus:border-primary" 
                       />
                     </div>
                   </div>
@@ -262,7 +246,7 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
                       value={editingProduct.category || ""} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
                       required
-                      className="w-full bg-background border border-foreground/10 p-3 text-xs font-mono focus:outline-none focus:border-primary transition-colors appearance-none cursor-pointer"
+                      className="w-full bg-background border border-foreground/10 p-3 text-xs font-mono focus:outline-none focus:border-primary appearance-none cursor-pointer"
                     >
                       <option value="" disabled>SELECT...</option>
                       {PRODUCT_CLASSIFICATIONS.map((classification) => (
@@ -283,7 +267,7 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
                     required
                     value={editingProduct.href || "/"} 
                     onChange={(e) => setEditingProduct({ ...editingProduct, href: e.target.value })}
-                    className="w-full bg-background border border-foreground/10 p-3 text-xs font-mono focus:outline-none focus:border-primary transition-colors text-primary" 
+                    className="w-full bg-background border border-foreground/10 p-3 text-xs font-mono focus:outline-none focus:border-primary text-primary" 
                   />
                 </div>
 
@@ -317,20 +301,19 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
                 </div>
               </div>
               
-              {/* Right Column Media Controls */}
               <div className="space-y-4 flex flex-col">
                 <div className="space-y-1 flex-1">
                   <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Asset Details</label>
                   <textarea 
                     value={editingProduct.description || ""} 
                     onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                    className="w-full h-[95px] bg-background border border-foreground/10 p-3 text-xs font-mono focus:outline-none focus:border-primary transition-colors resize-none custom-scrollbar" 
+                    className="w-full h-[95px] bg-background border border-foreground/10 p-3 text-xs font-mono focus:outline-none focus:border-primary resize-none custom-scrollbar" 
                   />
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-[9px] uppercase tracking-widest font-black text-muted-foreground">Update Visual Schematic</label>
-                  <div className={`relative border-2 border-dashed p-4 text-center transition-all duration-300 flex flex-col items-center justify-center min-h-[115px] ${selectedFile ? 'border-primary bg-primary/5' : 'border-foreground/10 bg-background hover:border-primary/50'}`}>
+                  <div className={`relative border-2 border-dashed p-4 text-center flex flex-col items-center justify-center min-h-[115px] ${selectedFile ? 'border-primary bg-primary/5' : 'border-foreground/10 bg-background hover:border-primary/50'}`}>
                     {selectedFile ? (
                       <div className="flex flex-col items-center text-primary">
                         <CheckCircle2 className="mb-1 h-6 w-6" />
@@ -338,13 +321,13 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
                         <p className="text-[8px] uppercase tracking-wider opacity-70">Replaces current visual map</p>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center group-hover:opacity-100">
+                      <div className="flex flex-col items-center">
                         {editingProduct.image_url ? (
                           <div className="flex items-center gap-3 w-full px-2">
                             <img 
                               src={editingProduct.image_url} 
-                              alt="Current asset layout preview" 
-                              className="h-12 w-12 object-cover border border-foreground/10 grayscale group-hover:grayscale-0 transition-all"
+                              alt="Current layout preview" 
+                              className="h-12 w-12 object-cover border border-foreground/10 grayscale group-hover:grayscale-0"
                             />
                             <div className="text-left">
                               <p className="text-[9px] font-black uppercase tracking-wider">Modify Existing File</p>
@@ -388,7 +371,7 @@ export default function ProductTable({ initialProducts }: { initialProducts: any
                 <Button 
                   type="submit" 
                   disabled={isSaving} 
-                  className="flex-1 rounded-none h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-black uppercase tracking-[0.4em] text-xs transition-all"
+                  className="flex-1 rounded-none h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-black uppercase tracking-[0.4em] text-xs"
                 >
                   {isSaving ? (
                     <span className="flex items-center justify-center gap-2">

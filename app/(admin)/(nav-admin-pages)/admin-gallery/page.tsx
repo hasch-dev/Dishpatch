@@ -5,13 +5,11 @@ import UploadGalleryDialog from "@/components/admin/upload-gallery-dialog";
 export default async function AdminGalleryPage() {
   const supabase = await createClient();
   
-  // 1. Simplified Query to isolate the issue
   const { data: items, error } = await supabase
     .from("gallery_items")
     .select("*") 
-    .order("created_at", { ascending: false });
+    .order("sort_order", { ascending: true }); // Switched to sort_order to respect D&D hierarchy
 
-  // 2. Server-side Error Logging
   if (error) {
     console.error("ADMIN GALLERY DB ERROR:", error.message);
   }
@@ -25,7 +23,7 @@ export default async function AdminGalleryPage() {
           </h1>
           <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground mt-2">
             Managing {items ? items.length : 0} Visual Assets
-            {error && <span className="text-red-500 ml-2">— DB Error: Check Console</span>}
+            {error && <span className="text-destructive ml-2">— DB Error: Check Console</span>}
           </p>
         </div>
         
@@ -33,7 +31,6 @@ export default async function AdminGalleryPage() {
       </header>
 
       <div className="bg-card border border-foreground/5 shadow-2xl">
-        {/* Pass an empty array if items is null so the table doesn't crash */}
         <GalleryRegistryTable initialItems={items || []} />
       </div>
     </div>

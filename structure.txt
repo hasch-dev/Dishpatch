@@ -8,9 +8,11 @@
 │   │   └── send-message.ts
 │   ├── (additionals)
 │   │   ├── gallery
-│   │   └── products
+│   │   ├── products
+│   │   └── stockhouse
 │   ├── (admin)
 │   │   ├── admin-dashboard
+│   │   ├── distributions
 │   │   ├── inventory
 │   │   ├── layout.tsx
 │   │   └── (nav-admin-pages)
@@ -53,6 +55,8 @@
 │   │   ├── gallery-registry-table.tsx
 │   │   ├── product-actions.tsx
 │   │   ├── product-table.tsx
+│   │   ├── testimonials-dialog.tsx
+│   │   ├── testimonials-table.tsx
 │   │   └── upload-gallery-dialog.tsx
 │   ├── app-sidebar.tsx
 │   ├── booking
@@ -70,6 +74,9 @@
 │   │   └── ChefQuoteAction.tsx
 │   ├── chef
 │   │   └── marketplace-card.tsx
+│   ├── distributions
+│   │   ├── matrix-controls.tsx
+│   │   └── matrix-table.tsx
 │   ├── footer.tsx
 │   ├── forgot-password-form.tsx
 │   ├── gallery
@@ -78,6 +85,9 @@
 │   │   ├── gallery-skeleton.tsx
 │   │   ├── masonry-grid.tsx
 │   │   └── photo-lightbox.tsx
+│   ├── home
+│   │   ├── system-gateways.tsx
+│   │   └── testimonials-section.tsx
 │   ├── inventory
 │   │   ├── live-inventory-refresher.tsx
 │   │   ├── public-stock-grid.tsx
@@ -124,7 +134,11 @@
 │   │   └── floating-nav.tsx
 │   ├── password-strength-indicator.tsx
 │   ├── products
-│   │   └── product-card.tsx
+│   │   ├── product-card.tsx
+│   │   ├── product-controls.tsx
+│   │   ├── product-image-gallery.tsx
+│   │   ├── product-info-header.tsx
+│   │   └── product-tabs.tsx
 │   ├── sidebar.tsx
 │   ├── theme-provider.tsx
 │   ├── theme-toggle.tsx
@@ -171,6 +185,7 @@
 │   │   ├── scroll-area.tsx
 │   │   ├── select.tsx
 │   │   ├── separator.tsx
+│   │   ├── share-button.tsx
 │   │   ├── sheet.tsx
 │   │   ├── sidebar.tsx
 │   │   ├── skeleton.tsx
@@ -274,4 +289,4 @@
 ├── test
 └── tsconfig.json
 
-62 directories, 213 files
+66 directories, 224 files

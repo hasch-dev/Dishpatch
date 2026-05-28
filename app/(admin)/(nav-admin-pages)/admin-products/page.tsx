@@ -22,7 +22,6 @@ export default async function AdminProductsPage() {
           </p>
         </div>
         
-        {/* The Upload Component */}
         <AddProductDialog />
       </header>
 
