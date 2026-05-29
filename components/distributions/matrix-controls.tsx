@@ -37,11 +37,11 @@ export default function MatrixControls({
   return (
     <div className="bg-card/40 border border-border/40 p-3 md:p-4 rounded-3xl shadow-sm hover:shadow-md hover:border-border/60 transition-all flex flex-col lg:flex-row gap-4 items-center justify-between w-full">
       
-      {/* Search Bar */}
+      {/* Search Input */}
       <div className="relative w-full lg:max-w-md">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
         <Input 
-          placeholder="Search products in ledger..."
+          placeholder="Search products in matrix grid..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-11 h-12 rounded-2xl border-border/50 bg-background/50 text-sm focus-visible:ring-primary/20 w-full transition-all"
