@@ -7,24 +7,24 @@ export async function fetchConversation(conversationId: string) {
     .from("conversations")
     .select(`
       *,
-      booking:booking_id(*),
+      booking:bookings(*),
       participants:conversation_participants(
         *,
         profile:profiles(*)
       ),
-      messages(
+      messages!messages_conversation_id_fkey(
         *
       )
     `)
     .eq("id", conversationId)
     .order("created_at", {
-      foreignTable: "messages",
+      foreignTable: "messages", 
       ascending: true,
     })
-    .maybeSingle() // Use maybeSingle to prevent crashing on missing rows or RLS failures
+    .maybeSingle() 
 
   if (error) {
-    console.error("Database fetch error in fetchConversation:", error)
+    console.error("Database fetch error in fetchConversation:", JSON.stringify(error, null, 2))
     return null
   }
 

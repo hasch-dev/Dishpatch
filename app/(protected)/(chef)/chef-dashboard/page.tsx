@@ -2,23 +2,26 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState, useMemo } from "react";
 import { 
-  PhilippinePeso, Calendar, Utensils,
-  Clock, CheckCircle2, Inbox, 
-  Briefcase, MessageSquare, ChevronRight
+  CalendarClock, Utensils, MessageSquare, 
+  Activity, Briefcase, Banknote, ChevronRight 
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { format, isAfter, isBefore, addDays, parseISO } from "date-fns";
 
 export default function ChefDashboardPage() {
-  const [data, setData] = useState<any>({ proposals: [], deals: [], requests: [], profile: null });
+  const [data, setData] = useState<any>({ 
+    profile: null, 
+    activeBookingsCount: 0,
+    negotiatingCount: 0,
+    awaitingPaymentCount: 0,
+    upcomingEvents: [],
+  });
   const [isLoading, setIsLoading] = useState(true);
-  const [isCompleting, setIsCompleting] = useState<string | null>(null);
   
-  // Use useMemo to ensure the supabase client is stable across renders
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
 
@@ -27,159 +30,164 @@ export default function ChefDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.push("/auth/login");
 
-      const [prof, proposalsRes, dealsRes, requestsRes] = await Promise.all([
+      const today = new Date();
+      const nextWeek = addDays(today, 7);
+
+      const [profRes, bookingsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
-        fetch(`/api/proposals?chef_id=${user.id}`).then(res => res.json()),
-        fetch(`/api/deals?chef_id=${user.id}`).then(res => res.json()),
-        supabase.from("bookings").select("*").eq("status", "open").is("chef_id", null)
+        supabase.from("bookings").select("*").eq("chef_id", user.id),
       ]);
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const bookings = bookingsRes.data || [];
+      const profile = profRes.data;
+
+      // Operational Metrics
+      const activeBookingsCount = bookings.filter(b => 
+        ['confirmed', 'in_progress'].includes(b.status)
+      ).length;
       
-      const validRequests = (requestsRes.data || []).filter((req: any) => {
-        if (!req.event_date) return true;
-        const eventDate = new Date(req.event_date);
-        return eventDate >= today; 
-      });
+      const negotiatingCount = bookings.filter(b => b.status === 'negotiating').length;
+      
+      const awaitingPaymentCount = bookings.filter(b => 
+        ['confirmed', 'in_progress'].includes(b.status) && b.payment_status === 'pending'
+      ).length;
+
+      // Upcoming Timeline (Next 7 Days)
+      const upcoming = bookings
+        .filter(b => b.event_date && isAfter(parseISO(b.event_date), today) && isBefore(parseISO(b.event_date), nextWeek))
+        .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
+        .slice(0, 6);
 
       setData({
-        profile: prof.data,
-        proposals: proposalsRes.data || [],
-        deals: dealsRes.data || [],
-        requests: validRequests
+        profile,
+        activeBookingsCount,
+        negotiatingCount,
+        awaitingPaymentCount,
+        upcomingEvents: upcoming,
       });
       setIsLoading(false);
     };
 
     loadDashboard();
-    // Dependency array is now stable
   }, [supabase, router]);
-
-  const earnings = data.deals.reduce((sum: number, d: any) => sum + (d.deposit_paid ? d.deposit_amount : 0), 0);
-  const pendingCount = data.proposals.filter((p: any) => p.status === "pending").length;
-  const activeDeals = data.deals.filter((d: any) => d.booking?.status !== 'completed');
-
-  const handleCompleteDeal = async (e: React.MouseEvent, bookingId: string) => {
-    e.stopPropagation();
-    if (!confirm("Confirming completion will finalize the transaction. Proceed?")) return;
-    
-    setIsCompleting(bookingId);
-    const res = await fetch('/api/bookings/complete', {
-      method: 'POST',
-      body: JSON.stringify({ bookingId }),
-    });
-
-    if (res.ok) {
-      window.location.reload(); 
-    } else {
-      setIsCompleting(null);
-    }
-  };
 
   if (isLoading) return (
     <div className="h-screen flex items-center justify-center bg-background">
-      <div className="text-[10px] tracking-[0.5em] animate-pulse uppercase italic opacity-40 font-mono">
-        Accessing_Chef_Terminal
+      <div className="text-[10px] tracking-[0.5em] animate-pulse uppercase italic opacity-40 font-mono pl-[0.5em]">
+        Loading_Workspace...
       </div>
     </div>
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-12 pb-24 font-sans">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border/10 pb-12">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-12 pb-24 font-sans">
+      
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border/20 pb-8">
         <div>
-          <div className="flex items-center gap-3 opacity-40 mb-4">
-            <div className="h-[1px] w-6 bg-foreground" />
-            <p className="text-[8px] font-bold uppercase tracking-[0.4em]">Operational Overview</p>
+          <div className="flex items-center gap-3 text-muted-foreground mb-3">
+            <div className="h-[1px] w-6 bg-muted-foreground/50" />
+            <p className="text-[9px] font-bold uppercase tracking-[0.4em]">Chef Workspace</p>
           </div>
-          <h1 className="text-5xl font-serif italic tracking-tighter">
-            Chef {data.profile?.display_name?.split(' ')[0]}
+          <h1 className="text-4xl md:text-5xl font-serif italic tracking-tighter">
+            Welcome, {data.profile?.display_name?.split(' ')[0] || "Chef"}
           </h1>
+        </div>
+        <div className="text-right">
+           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">System Status</p>
+           <p className="text-xs font-mono text-green-600 flex items-center gap-2 justify-end mt-1">
+             <Activity className="h-3 w-3" /> Accepting Requests
+           </p>
         </div>
       </header>
 
-      {/* INTERACTIVE STATS GRID */}
+      {/* INTELLIGENCE METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-            label="Gross Earnings" 
-            value={`₱${earnings.toLocaleString()}`} 
-            icon={<PhilippinePeso className="h-4 w-4" />}
-            href="/dashboard/earnings"
-            subtext="Performance Data"
+            label="Confirmed Bookings" 
+            value={data.activeBookingsCount} 
+            icon={<Briefcase className="h-4 w-4" />}
+            href="/requests"
+            subtext="Secured & Scheduled"
             variant="primary"
         />
         <StatCard 
-            label="Marketplace" 
-            value={data.requests.length} 
-            icon={<Inbox className="h-4 w-4" />}
+            label="Awaiting Payment" 
+            value={data.awaitingPaymentCount} 
+            icon={<Banknote className="h-4 w-4" />}
             href="/requests"
-            subtext="Available Missions"
+            subtext="Action Required"
         />
         <StatCard 
-            label="Deals" 
-            value={activeDeals.length} 
-            icon={<Briefcase className="h-4 w-4" />}
-            href="/dashboard/deals"
-            subtext="Active Logic"
-        />
-        <StatCard 
-            label="Proposals" 
-            value={pendingCount} 
+            label="Pending Requests" 
+            value={data.negotiatingCount} 
             icon={<MessageSquare className="h-4 w-4" />}
-            href="/proposals"
-            subtext="Negotiations"
+            href="/messages"
+            subtext="Awaiting Quotes"
+        />
+        <StatCard 
+            label="Upcoming Events" 
+            value={data.upcomingEvents.length} 
+            icon={<CalendarClock className="h-4 w-4" />}
+            href="/requests"
+            subtext="Next 7 Days"
         />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-12">
+      <div className="grid lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-6">
-          <h2 className="font-serif italic text-2xl">Active Commissions</h2>
-          <div className="space-y-4">
-            {activeDeals.length === 0 ? (
-              <div className="py-20 border border-dashed border-border/40 text-center flex flex-col items-center">
-                <p className="font-serif italic text-muted-foreground opacity-60">No active culinary deployments.</p>
-                <Link href="/requests" className="text-[10px] uppercase font-bold tracking-widest text-primary mt-4 hover:underline">
-                    Scan Marketplace →
-                </Link>
+          <div className="flex items-center justify-between border-b border-border/10 pb-4">
+            <h2 className="font-serif italic text-2xl">Your Itinerary</h2>
+            <Link href="/requests" className="text-[10px] uppercase tracking-widest font-bold text-primary hover:text-primary/80 flex items-center gap-1 transition-colors">
+              View Calendar <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {data.upcomingEvents.length === 0 ? (
+              <div className="py-16 border border-dashed border-border/40 text-center flex flex-col items-center bg-muted/5 rounded-xl">
+                <CalendarClock className="h-8 w-8 text-muted-foreground/30 mb-4" />
+                <p className="font-serif italic text-muted-foreground text-lg">No upcoming events.</p>
               </div>
             ) : (
-              activeDeals.slice(0, 5).map((deal: any) => (
-                <div 
-                  key={deal.id} 
-                  onClick={() => router.push(`/deal/${deal.booking.id}`)}
-                  className="group flex items-center justify-between p-6 border border-border/40 bg-card/30 hover:border-primary/40 hover:bg-card/60 transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-6">
-                    <div className="h-12 w-12 bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                      <Utensils className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-black uppercase tracking-tight">{deal.booking.title}</p>
-                      <p className="text-[9px] uppercase tracking-widest opacity-40 mt-1">{deal.booking.event_date || "DATE TBD"}</p>
+              data.upcomingEvents.map((booking: any) => (
+                <div key={booking.id} className="flex items-center gap-6 p-5 border border-border/20 bg-card hover:border-primary/40 transition-all rounded-xl shadow-sm cursor-pointer" onClick={() => router.push(`/requests/${booking.id}`)}>
+                  <div className="flex flex-col items-center justify-center min-w-[60px] p-3 bg-muted/30 rounded-lg">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      {format(parseISO(booking.event_date), "MMM")}
+                    </span>
+                    <span className="text-2xl font-serif italic text-foreground">
+                      {format(parseISO(booking.event_date), "dd")}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">{booking.title || "Private Event"}</p>
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                      <span className="font-mono">{booking.event_time_pref || "Time TBD"}</span>
+                      <span>•</span>
+                      <span className="truncate">{booking.location_city || "Location TBD"}</span>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </div>
               ))
             )}
           </div>
         </div>
 
-        {/* OPERATIONAL CONTROLS */}
-        <div className="space-y-4">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/50 px-2">Operational Controls</h4>
+        <div className="space-y-6">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 border-b border-border/10 pb-4">
+              Quick Actions
+            </h4>
             <div className="grid gap-3">
                 <QuickActionButton 
-                    title="Marketplace" 
-                    desc="Respond to new briefs" 
-                    icon={<Clock className="text-blue-500" />} 
+                    title="Manage Bookings" 
+                    desc="View all requests and active jobs" 
+                    icon={<Briefcase className="h-4 w-4 text-foreground" />} 
                     href="/requests" 
                 />
                 <QuickActionButton 
-                    title="Manifesto" 
-                    desc="Refine Chef Profile" 
-                    icon={<Utensils className="text-orange-500" />} 
+                    title="Edit Menu & Profile" 
+                    desc="Update your public offerings" 
+                    icon={<Utensils className="h-4 w-4 text-foreground" />} 
                     href="/menu"
                 />
             </div>
@@ -193,18 +201,20 @@ function StatCard({ label, value, icon, href, subtext, variant = "default" }: an
     return (
         <Link href={href} className="group">
             <Card className={cn(
-                "rounded-none border-border/40 shadow-none transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl",
-                variant === "primary" ? "bg-primary text-primary-foreground border-none" : "bg-card group-hover:border-primary/40"
+                "rounded-xl border border-border/30 shadow-sm transition-all duration-300 group-hover:-translate-y-1",
+                variant === "primary" ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:border-primary/40"
             )}>
                 <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-                    <CardTitle className={cn("text-[9px] uppercase tracking-[0.2em]", variant === "primary" ? "opacity-70" : "text-muted-foreground")}>
+                    <CardTitle className={cn("text-[10px] font-bold uppercase tracking-[0.1em]", variant === "primary" ? "text-primary-foreground/90" : "text-muted-foreground")}>
                         {label}
                     </CardTitle>
-                    <div className={cn("opacity-40", variant === "primary" ? "text-white" : "text-primary")}>{icon}</div>
+                    <div className={cn("p-2 rounded-lg", variant === "primary" ? "bg-white/20 text-white" : "bg-primary/10 text-primary")}>
+                      {icon}
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-3xl font-serif italic tracking-tighter">{value}</div>
-                    <p className={cn("text-[9px] mt-2 font-bold uppercase tracking-widest", variant === "primary" ? "opacity-60" : "text-primary/60")}>
+                    <div className="text-3xl font-serif italic tracking-tighter truncate">{value}</div>
+                    <p className={cn("text-[10px] mt-2 font-medium", variant === "primary" ? "text-primary-foreground/70" : "text-muted-foreground")}>
                         {subtext}
                     </p>
                 </CardContent>
@@ -215,14 +225,14 @@ function StatCard({ label, value, icon, href, subtext, variant = "default" }: an
 
 function QuickActionButton({ title, desc, icon, href }: any) {
     return (
-        <Link href={href} className="group">
-            <div className="flex items-center p-6 border border-border/40 bg-card/20 hover:bg-muted hover:border-primary/40 transition-all duration-300">
-                <div className="h-10 w-10 bg-background border border-border/40 flex items-center justify-center mr-6 group-hover:scale-110 transition-transform">
+        <Link href={href} className="group block">
+            <div className="flex items-center p-4 border border-border/20 bg-card rounded-xl hover:shadow-md hover:border-primary/30 transition-all duration-300">
+                <div className="h-10 w-10 bg-muted rounded-lg flex items-center justify-center mr-4 group-hover:bg-primary/10 transition-colors shrink-0">
                     {icon}
                 </div>
-                <div className="text-left">
-                    <p className="text-xs font-black uppercase tracking-widest">{title}</p>
-                    <p className="text-[10px] text-muted-foreground italic mt-0.5">{desc}</p>
+                <div className="text-left overflow-hidden">
+                    <p className="text-sm font-bold text-foreground truncate">{title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{desc}</p>
                 </div>
             </div>
         </Link>

@@ -51,8 +51,8 @@ export default function Step5Finances({ data, update }: any) {
               inputMode="numeric"
               className="w-full bg-transparent text-3xl font-serif outline-none placeholder:opacity-20 transition-all focus:tracking-tighter"
               placeholder="0"
-              value={formatDisplay(data.budgetMin)}
-              onChange={(e) => handleChange("budgetMin", e.target.value)}
+              value={formatDisplay(data.budget_min)}
+              onChange={(e) => handleChange("budget_min", e.target.value)}
             />
           </div>
         </div>
@@ -70,8 +70,8 @@ export default function Step5Finances({ data, update }: any) {
               inputMode="numeric"
               className="w-full bg-transparent text-3xl font-serif outline-none placeholder:opacity-20 transition-all focus:tracking-tighter"
               placeholder="0"
-              value={formatDisplay(data.budgetMax)}
-              onChange={(e) => handleChange("budgetMax", e.target.value)}
+              value={formatDisplay(data.budget_max)}
+              onChange={(e) => handleChange("budget_max", e.target.value)}
             />
           </div>
         </div>

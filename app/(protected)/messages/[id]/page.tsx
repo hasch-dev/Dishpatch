@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { fetchConversation } from "@/lib/messaging/fetch-conversation"
 import { ConversationFeed } from "@/components/messaging/conversation-feed"
 import { ConversationInput } from "@/components/messaging/conversation-input"
+import { ConversationTracker } from "@/components/messaging/conversation-tracker" // <-- IMPORTED HERE
 import { ShieldCheck, User as UserIcon, Wallet } from "lucide-react"
 
 export default async function ConversationPage({
@@ -30,8 +31,6 @@ export default async function ConversationPage({
 
   // 1. Determine Chat Context & Roles
   const isSupport = conversation.conversation_type === "support"
-  
-  // NEW: Identify if the logged-in user is the Chef for this specific booking
   const isChef = !isSupport && conversation.chef_id === user.id
 
   // 2. Determine Top Header Identity
@@ -41,11 +40,9 @@ export default async function ConversationPage({
 
   if (isSupport) {
     if (conversation.client_id === user.id) {
-      // Client looking at their support ticket
       chatTitle = "HQ Concierge"
       chatSubtitle = "Official Support Line"
     } else {
-      // Admin looking at a client's support ticket
       const clientParticipant = conversation.participants?.find(
         (p: any) => p.role === "client" || p.user_id === conversation.client_id
       )
@@ -53,25 +50,22 @@ export default async function ConversationPage({
       chatSubtitle = "Support Operations Queue"
     }
   } else {
-    // Standard Chef/Client Booking Chat
     const partner = conversation.participants?.find(
       (p: any) => p.user_id !== user.id
     )
     chatTitle = partner?.profile?.display_name || "Active Booking"
     chatSubtitle = "Direct Message • Escrow Secured"
-    
-    // Grab the initial budget set by the client from the linked booking table
-    // (Adjust 'budget' to whatever your column name is, e.g., 'price' or 'target_budget')
-    bookingBudget = conversation.booking?.budget || conversation.booking?.price || "TBD"
+    bookingBudget = conversation.booking?.budget_max || conversation.booking?.budget_min || "TBD"
   }
 
   return (
     <div className="flex flex-col flex-1 h-full overflow-hidden bg-background border-l border-foreground/5">
       
+      {/* INVISIBLE CLIENT COMPONENT TO TRACK READ RECEIPTS */}
+      <ConversationTracker conversationId={conversation.id} />
+
       {/* Dynamic Chat Header Navbar */}
       <div className="h-20 border-b border-foreground/5 bg-card/30 flex items-center px-8 shrink-0 justify-between">
-        
-        {/* Left Side: Identity */}
         <div className="flex items-center gap-4">
           <div className="h-10 w-10 bg-primary/5 flex items-center justify-center text-primary border border-primary/20 shadow-sm">
             {isSupport ? <ShieldCheck className="h-5 w-5" /> : <UserIcon className="h-5 w-5" />}
@@ -86,19 +80,16 @@ export default async function ConversationPage({
           </div>
         </div>
         
-        {/* Right Side: Operational Metadata */}
         <div className="flex items-center gap-4">
-          {/* If it's a booking, show the initial budget securely in the header */}
           {!isSupport && bookingBudget && (
             <div className="flex items-center gap-2 bg-foreground/[0.03] border border-foreground/10 px-4 py-2">
               <Wallet size={12} className="text-muted-foreground" />
               <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-foreground">
-                Client Budget: <span className="text-primary">${bookingBudget}</span>
+                Client Budget: <span className="text-primary">₱{bookingBudget}</span>
               </span>
             </div>
           )}
 
-          {/* If it's support, show the ticket status */}
           {isSupport && (
              <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-primary border border-primary/20 bg-primary/5 px-3 py-1.5">
               Status: {conversation.status}
@@ -107,16 +98,21 @@ export default async function ConversationPage({
         </div>
       </div>
 
-      {/* Realtime Message Feed */}
+      {/* Realtime Message Feed - Passing specific IDs down for Deals mapping */}
       <ConversationFeed
         messages={conversation.messages ?? []}
         currentUserId={user.id}
+        bookingId={conversation.booking_id}
+        chefId={conversation.chef_id}
+        conversationId={conversation.id}
       />
 
-      {/* Upgraded Realtime Input Box (Now receives the isChef boolean!) */}
       <ConversationInput
         conversationId={conversation.id}
+        bookingId={conversation.booking_id}
         isChef={isChef}
+        budgetMin={conversation.booking?.budget_min}
+        budgetMax={conversation.booking?.budget_max}
       />
     </div>
   )

@@ -67,7 +67,6 @@
 │   │   ├── private-event
 │   │   ├── shared
 │   │   └── StepAnimation.tsx
-│   ├── booking-dossier-panel.tsx
 │   ├── catalog
 │   │   └── culinary-catalog.tsx
 │   ├── chat
@@ -75,6 +74,7 @@
 │   ├── chef
 │   │   └── marketplace-card.tsx
 │   ├── distributions
+│   │   ├── distribution-stats.tsx
 │   │   ├── matrix-controls.tsx
 │   │   └── matrix-table.tsx
 │   ├── footer.tsx
@@ -89,6 +89,11 @@
 │   │   ├── system-gateways.tsx
 │   │   └── testimonials-section.tsx
 │   ├── inventory
+│   │   ├── adjustment-form.tsx
+│   │   ├── audit-ledger-table.tsx
+│   │   ├── inventory-header.tsx
+│   │   ├── inventory-toolbar.tsx
+│   │   ├── live-assets-table.tsx
 │   │   ├── live-inventory-refresher.tsx
 │   │   ├── public-stock-grid.tsx
 │   │   └── stock-card.tsx
@@ -204,6 +209,11 @@
 │   │   ├── use-mobile.tsx
 │   │   └── use-toast.ts
 │   ├── update-password-form.tsx
+│   ├── user
+│   │   ├── archive-panel.tsx
+│   │   ├── booking-card.tsx
+│   │   ├── booking-controls.tsx
+│   │   └── booking-dossier-panel.tsx
 │   └── visual
 │       └── section.tsx
 ├── components.json
@@ -214,7 +224,9 @@
 │   ├── food-categories.ts
 │   ├── ingredients.ts
 │   └── product-classifications.ts
+├── .env
 ├── eslint.config.mjs
+├── .gitignore
 ├── hooks
 │   ├── use-conversation-realtime.ts
 │   ├── use-conversation.ts
@@ -243,9 +255,24 @@
 │   │   └── server.ts
 │   ├── useRequireAuth.ts
 │   └── utils.ts
+├── .next
+│   └── dev
+│       ├── build-manifest.json
+│       ├── cache
+│       ├── fallback-build-manifest.json
+│       ├── lock
+│       ├── logs
+│       ├── package.json
+│       ├── prerender-manifest.json
+│       ├── routes-manifest.json
+│       ├── server
+│       ├── static
+│       ├── trace
+│       └── types
 ├── next.config.mjs
 ├── next.config.ts
 ├── next-env.d.ts
+├── .npmrc
 ├── package.json
 ├── package-lock.json
 ├── pnpm-lock.yaml
@@ -289,4 +316,4 @@
 ├── test
 └── tsconfig.json
 
-66 directories, 224 files
+74 directories, 243 files

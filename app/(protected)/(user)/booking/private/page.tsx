@@ -28,7 +28,7 @@ export default function PrivateEventForm() {
     eventDate: "", eventEndDate: "", time: "Evening", 
     pax: { adults: 0, teens: 0, seniors: 0, children: 0 },
     direction: "Modern Filipino", catalogItems: [],
-    budgetMin: "", budgetMax: "", budgetFlexible: false,
+    budget_min: "", budget_max: "", budgetFlexible: false, // FIX 1: Aligned keys to snake_case
     allergies: [], customAllergy: "", 
     serviceTier: "Standard", notes: ""
   });
@@ -47,9 +47,10 @@ export default function PrivateEventForm() {
         const total = Object.values(formData.pax).reduce((a, b) => a + (parseInt(b.toString()) || 0), 0);
         return total > 0 && formData.direction;
       case 5: 
-        const min = parseInt(formData.budgetMin.replace(/\D/g, "") || "0");
-        const max = parseInt(formData.budgetMax.replace(/\D/g, "") || "0");
-        return formData.budgetMin && formData.budgetMax && max > min;
+        // FIX 2: Updated validation references to match state
+        const min = parseInt(formData.budget_min.replace(/\D/g, "") || "0");
+        const max = parseInt(formData.budget_max.replace(/\D/g, "") || "0");
+        return formData.budget_min && formData.budget_max && max > min;
       case 6: return formData.serviceTier;
       default: return true;
     }
@@ -63,7 +64,6 @@ export default function PrivateEventForm() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Unauthorized");
 
-      // Fix: Clear calculation for total guests
       const totalPaxCount = Object.values(formData.pax).reduce(
         (acc: number, val: any) => acc + (parseInt(val) || 0), 
         0
@@ -94,8 +94,9 @@ export default function PrivateEventForm() {
         custom_allergy: formData.customAllergy,
         
         // Finances & Tier
-        budget_min: parseFloat(formData.budgetMin.toString().replace(/\D/g, "")) || 0,
-        budget_max: parseFloat(formData.budgetMax.toString().replace(/\D/g, "")) || 0,
+        // FIX 3: Updated reference values here to point to snake_case state parameters
+        budget_min: parseFloat(formData.budget_min.toString().replace(/\D/g, "")) || 0,
+        budget_max: parseFloat(formData.budget_max.toString().replace(/\D/g, "")) || 0,
         budget_flexible: formData.budgetFlexible,
         service_package: formData.serviceTier,
         
@@ -117,7 +118,6 @@ export default function PrivateEventForm() {
 
     } catch (error) {
       console.error("Submission failed:", error);
-      // Add an alert so you can see the error message if it fails again
       alert(`Submission Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);

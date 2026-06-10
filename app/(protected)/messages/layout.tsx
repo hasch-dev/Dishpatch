@@ -1,11 +1,6 @@
 import { ReactNode } from "react"
-import Link from "next/link"
-
 import { createClient } from "@/lib/supabase/server"
-
 import { InboxShell } from "@/components/messaging/inbox-shell"
-
-import { MessageSquare, Search } from "lucide-react"
 
 export default async function MessagesLayout({
   children,
@@ -17,99 +12,86 @@ export default async function MessagesLayout({
   
   if (!user) return null
 
-  // Fetch actual 1-on-1 standard booking conversations
-  // Added .eq filter so support tickets don't clutter the dynamic list
-  const { data: conversations } = await supabase
-    .from('conversations')
-    .select(`
-      id,
-      chef_id,
-      client_id,
-      chef:chef_id(display_name),
-      client:client_id(display_name)
-    `)
-    .eq('conversation_type', 'booking') 
-    .or(`chef_id.eq.${user.id},client_id.eq.${user.id}`)
+  // 1. Get the conversation IDs this user belongs to
+  const { data: participation } = await supabase
+    .from('conversation_participants')
+    .select('conversation_id')
+    .eq('user_id', user.id)
+
+  const conversationIds = participation?.map(p => p.conversation_id) || []
+  let initializedConversations: any[] = []
+
+  if (conversationIds.length > 0) {
+    // 2. Fetch conversations, including the crucial last_read_at timestamp
+    const { data: chatsData } = await supabase
+      .from('conversations')
+      .select(`
+        id,
+        conversation_type,
+        participants:conversation_participants(
+          user_id,
+          last_read_at, 
+          profile:profiles(display_name)
+        )
+      `)
+      .in('id', conversationIds)
+
+    // 3. Fetch all messages
+    const { data: messagesData } = await supabase
+      .from('messages')
+      .select('id, conversation_id, content, created_at, sender_id, message_type, proposal_status')
+      .in('conversation_id', conversationIds)
+      .order('created_at', { ascending: false })
+
+    if (chatsData) {
+      // 4. Stitch everything together and calculate unread counts
+      initializedConversations = chatsData.map((chat) => {
+        const roomMessages = messagesData?.filter(m => m.conversation_id === chat.id) || []
+        const latestMessage = roomMessages[0] || null
+        
+        // Determine Room Status Tag
+        let roomTag = "negotiating"
+        const latestProposal = roomMessages.find(m => m.message_type === "proposal")
+        if (latestProposal) {
+          if (latestProposal.proposal_status === "accepted") roomTag = "success"
+          else if (latestProposal.proposal_status === "rejected" || latestProposal.proposal_status === "expired") roomTag = "cancelled"
+        }
+
+        // Calculate Unread Badge Logic
+        const myParticipantRecord = chat.participants.find(p => p.user_id === user.id)
+        
+        // If last_read_at is null, default to 0 (meaning all messages are technically unread)
+        const lastReadTime = myParticipantRecord?.last_read_at 
+          ? new Date(myParticipantRecord.last_read_at).getTime() 
+          : 0
+
+        // Count messages from the other user that are newer than your last_read_at timestamp
+        const calculatedUnreadCount = roomMessages.filter(m => 
+          new Date(m.created_at).getTime() > lastReadTime
+        ).length
+
+        return {
+          id: chat.id,
+          conversation_type: chat.conversation_type,
+          participants: chat.participants,
+          latestMessage: latestMessage,
+          roomTag: roomTag,
+          unreadCount: calculatedUnreadCount 
+        }
+      })
+
+      // 5. Sort newest to oldest
+      initializedConversations.sort((a, b) => {
+        const timeA = a.latestMessage ? new Date(a.latestMessage.created_at).getTime() : 0
+        const timeB = b.latestMessage ? new Date(b.latestMessage.created_at).getTime() : 0
+        return timeB - timeA
+      })
+    }
+  }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      <div className="flex w-full h-full">
-        {/* COLUMN 1: Inbox Sidebar */}
-        <aside className="w-80 border-r border-border flex flex-col bg-card/30 shrink-0">
-          <div className="p-6 border-b border-border bg-background/50">
-            <h1 className="font-serif italic font-bold text-2xl flex items-center gap-2 mb-4">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              Messages
-            </h1>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input 
-                placeholder="Search conversations..." 
-                className="w-full bg-muted/50 border-none rounded-full py-2 pl-10 pr-4 text-xs focus:ring-1 ring-primary outline-none transition-all"
-              />
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto">
-            {/* --- HARDCODED SUPPORT LINE --- */}
-            <Link href={`/messages/support`}>
-              <div className="p-4 border-b border-border/40 hover:bg-muted/50 transition-all cursor-pointer group bg-primary/5">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-serif italic text-xl shadow-lg border border-primary/20">
-                    D
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm truncate uppercase tracking-tighter text-primary">
-                      Concierge
-                    </p>
-                    <p className="text-[11px] text-primary/70 truncate italic opacity-80 group-hover:opacity-100 transition-opacity">
-                      Official Support Line
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-            {/* --- END SUPPORT LINE --- */}
-
-            {/* DYNAMIC CONVERSATIONS */}
-            {conversations && conversations.length > 0 ? (
-              conversations.map((chat: any) => {
-                const isChef = chat.chef_id === user.id
-                const partnerName = isChef ? chat.client?.display_name : chat.chef?.display_name
-
-                return (
-                  <Link key={chat.id} href={`/messages/${chat.id}`}>
-                    <div className="p-4 border-b border-border/40 hover:bg-muted/50 transition-all cursor-pointer group">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-serif italic text-xl border border-primary/5">
-                          {partnerName?.[0] || "?"}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm truncate uppercase tracking-tighter">
-                            {partnerName || "Unknown User"}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground truncate italic opacity-70 group-hover:opacity-100 transition-opacity">
-                            Open history
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })
-            ) : (
-              <div className="p-8 text-center text-muted-foreground italic text-sm">
-                No active bookings.
-              </div>
-            )}
-          </div>
-        </aside>
-
-        {/* Chat Room Window */}
-        <main className="flex-1 flex overflow-hidden">
-          {children}
-        </main>
-      </div>
-    </div>
+    <InboxShell conversations={initializedConversations} currentUserId={user.id}>
+      {children}
+    </InboxShell>
   )
 }
