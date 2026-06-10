@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { CalendarDays, UserSquare2, ArrowRight, History, Archive, Edit3, Lock } from 'lucide-react';
+import { CalendarDays, UserSquare2, ArrowRight, History, Archive, Edit3, Lock, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,33 @@ interface BookingCardProps {
   booking: any;
   onSelect: () => void;
   onEdit: (e: React.MouseEvent) => void;
-  onPurge: (e: React.MouseEvent) => void; // Keeps compatibility with parent dashboard
+  onPurge: (e: React.MouseEvent) => void; 
 }
 
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case 'awaiting_payment':
+      return { color: "bg-orange-500/10 text-orange-600 border-orange-500/20", label: "Awaiting Payment" };
+    case 'payment_overdue':
+      return { color: "bg-red-500/10 text-red-600 border-red-500/20", label: "Payment Overdue" };
+    case 'active':
+      return { color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", label: "Paid & Scheduled" };
+    case 'completed':
+      return { color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20", label: "Completed" };
+    case 'cancelled':
+      return { color: "bg-destructive/10 text-destructive border-destructive/20", label: "Cancelled" };
+    case 'expired':
+      return { color: "bg-muted text-muted-foreground border-border", label: "Expired" };
+    default: // pending
+      return { color: "bg-secondary text-secondary-foreground border-border/50", label: "Pending Review" };
+  }
+};
+
 export default function BookingCard({ booking, onSelect, onEdit, onPurge }: BookingCardProps) {
-  const isExpired = booking.status === 'expired';
-  const isLocked = ['completed', 'cancelled'].includes(booking.status);
+  // We now use ui_status mapped from the parent dashboard
+  const isExpired = booking.ui_status === 'expired';
+  const isLocked = ['completed', 'cancelled'].includes(booking.ui_status);
+  const statusConfig = getStatusConfig(booking.ui_status);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isExpired && (e.key === 'Enter' || e.key === ' ')) {
@@ -93,17 +114,26 @@ export default function BookingCard({ booking, onSelect, onEdit, onPurge }: Book
       )}
 
       <div className={cn("flex flex-col h-full w-full", isExpired && "opacity-40 pointer-events-none")}>
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <span className={cn(
-            "text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider",
-            ['confirmed', 'assigned'].includes(booking.status)
-              ? "bg-emerald-500/10 text-emerald-600" 
-              : "bg-primary/10 text-primary",
-          )}>
-            {booking.status.replace(/_/g, ' ')}
-          </span>
-          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity group-hover:text-primary group-hover:translate-x-1" />
+        {/* Dynamic Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex flex-col items-start gap-2">
+            <span className={cn(
+              "text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider border",
+              statusConfig.color
+            )}>
+              {statusConfig.label}
+            </span>
+            
+            {/* 3-Day Countdown Warning Indicator */}
+            {booking.ui_status === 'awaiting_payment' && booking.paymentHoursLeft !== undefined && booking.paymentHoursLeft !== null && (
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-orange-600 bg-orange-500/10 px-2 py-0.5 rounded-sm border border-orange-500/20">
+                <Clock className="h-3 w-3" />
+                Expires in {booking.paymentDaysLeft > 0 ? `${booking.paymentDaysLeft} days` : `${booking.paymentHoursLeft} hours`}
+              </div>
+            )}
+          </div>
+          
+          <ArrowRight className="h-4 w-4 mt-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity group-hover:text-primary group-hover:translate-x-1" />
         </div>
 
         {/* Content */}
@@ -123,7 +153,7 @@ export default function BookingCard({ booking, onSelect, onEdit, onPurge }: Book
         <div className="pt-4 mt-5 border-t border-border/40 flex items-center justify-between">
           <div className="flex items-center gap-2 w-full">
             {booking.artisan ? (
-              <div className="flex items-center gap-2 min-w-0 bg-muted/50 px-2 py-1 rounded-md">
+              <div className="flex items-center gap-2 min-w-0 bg-muted/50 px-2 py-1 rounded-md border border-border/50">
                 <UserSquare2 className="h-4 w-4 text-primary flex-shrink-0" />
                 <span className="text-xs font-semibold text-foreground truncate">{booking.artisan.display_name}</span>
               </div>
