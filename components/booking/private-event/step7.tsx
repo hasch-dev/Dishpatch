@@ -1,12 +1,14 @@
 "use client";
-import { Award, Target, Sparkles, Crown } from "lucide-react";
+import { Target, Sparkles, Crown } from "lucide-react";
 
-export default function Step7Summary({ data }: any) {
+export default function Step7Summary({ data, breakdown }: any) {
   // Database-aligned pax calculation
   const totalPax = Object.values(data.pax || {}).reduce(
     (a: any, b: any) => parseInt(a || 0) + parseInt(b || 0), 
     0
   );
+
+  const depositAmount = breakdown.grandTotal / 2;
 
   return (
     <div className="h-full flex flex-col justify-center max-w-6xl mx-auto space-y-8 animate-in fade-in duration-1000 py-4">
@@ -21,7 +23,7 @@ export default function Step7Summary({ data }: any) {
         <h3 className="text-5xl font-serif italic text-primary tracking-tight">The Inquiry Manifesto</h3>
       </div>
 
-      {/* Hero Badge: Highly Noticeable Service Tier */}
+      {/* Hero Badge: Highly Noticeable Service Tier & Split Payment */}
       <div className="relative overflow-hidden bg-background border-2 border-[#D4AF37] p-1 rounded-sm shadow-[0_0_40px_-15px_rgba(212,175,55,0.3)]">
         <div className="bg-[#D4AF37]/10 px-8 py-6 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-6">
@@ -31,15 +33,25 @@ export default function Step7Summary({ data }: any) {
             <div className="text-center md:text-left">
               <p className="text-[9px] uppercase tracking-[0.4em] font-black text-[#D4AF37] mb-1">Inquiry Status: Finalizing</p>
               <h4 className="text-4xl font-serif tracking-tighter">
-                {data.service_package || "Standard"} <span className="text-xl opacity-50 italic">Selection</span>
+                {data.serviceTier || "Standard"} <span className="text-xl opacity-50 italic">Selection</span>
               </h4>
             </div>
           </div>
-          <div className="text-center md:text-right border-t md:border-t-0 md:border-l border-[#D4AF37]/20 pt-4 md:pt-0 md:pl-10">
-            <p className="text-[9px] uppercase tracking-[0.4em] opacity-40 mb-1">Projected Investment</p>
-            <p className="text-4xl font-serif text-[#D4AF37]">
-              ₱{data.budget_min?.toLocaleString()} — ₱{data.budget_max?.toLocaleString()}
+          <div className="text-center md:text-right border-t md:border-t-0 md:border-l border-[#D4AF37]/20 pt-4 md:pt-0 md:pl-10 min-w-[280px]">
+            <p className="text-[9px] uppercase tracking-[0.4em] opacity-40 mb-1">Total Investment</p>
+            <p className="text-4xl font-serif text-[#D4AF37] mb-2">
+              ₱{breakdown.grandTotal.toLocaleString()}
             </p>
+            <div className="flex flex-col gap-1 text-[10px] uppercase tracking-widest font-bold">
+              <div className="flex justify-between gap-4 text-[#D4AF37]/80">
+                <span>50% To Lock:</span>
+                <span>₱{depositAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between gap-4 opacity-50">
+                <span>50% Upon Acceptance:</span>
+                <span>₱{depositAmount.toLocaleString()}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -88,30 +100,64 @@ export default function Step7Summary({ data }: any) {
         <div className="bg-background p-8 space-y-6 hover:bg-card/5 transition-colors">
           <div className="space-y-3">
             <h5 className="text-[9px] uppercase tracking-widest text-[#D4AF37] font-black border-b border-[#D4AF37]/20 pb-2">Culinary Palette</h5>
-            <p className="text-2xl font-serif italic underline underline-offset-4 decoration-[#D4AF37]/30">{data.selected_menu_theme}</p>
-            <p className="text-[9px] uppercase tracking-widest opacity-40 pt-1">{data.catalog_selections?.length || 0} Artisan Elements</p>
+            <p className="text-2xl font-serif italic underline underline-offset-4 decoration-[#D4AF37]/30">{data.direction}</p>
+            <p className="text-[9px] uppercase tracking-widest opacity-40 pt-1">{data.catalogItems?.length || 0} Artisan Elements</p>
           </div>
           <div className="space-y-3">
             <h5 className="text-[9px] uppercase tracking-widest text-red-500/50 font-black border-b border-red-500/10 pb-2">Allergy Watch</h5>
             <p className="text-[11px] font-serif italic opacity-70 leading-relaxed">
-              {[...(data.allergies || []), data.custom_allergy].filter(Boolean).length > 0 
-                ? [...(data.allergies || []), data.custom_allergy].filter(a => a !== 'Other' && Boolean(a)).join(" • ") 
+              {[...(data.allergies || []), data.customAllergy].filter(Boolean).length > 0 
+                ? [...(data.allergies || []), data.customAllergy].filter(a => a !== 'Other' && Boolean(a)).join(" • ") 
                 : "No strict ingredient exclusions."}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Signature Section */}
-      <div className="relative border border-border p-8 bg-card/5">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-4">
-          <Target size={16} className="text-[#D4AF37] opacity-40" />
+      {/* Itemized Investment Breakdown List */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-card/5 border border-border/50 p-6 space-y-4">
+          <h5 className="text-[9px] uppercase tracking-widest text-[#D4AF37] font-black border-b border-[#D4AF37]/20 pb-2 mb-4">Investment Ledger</h5>
+          
+          <div className="flex justify-between items-center">
+             <span className="text-xs font-serif opacity-70">Base Service ({breakdown.weightedGuestCount} weighted guests)</span>
+             <span className="text-sm font-serif">₱{breakdown.baseTotal.toLocaleString()}</span>
+          </div>
+
+          {breakdown.culinaryPremium > 0 && (
+            <div className="flex justify-between items-center">
+               <span className="text-xs font-serif opacity-70">Bespoke Culinary Design Fee</span>
+               <span className="text-sm font-serif">₱{breakdown.culinaryPremium.toLocaleString()}</span>
+            </div>
+          )}
+
+          {breakdown.aLaCarteTotal > 0 && (
+            <div className="flex justify-between items-center">
+               <span className="text-xs font-serif opacity-70">A La Carte Additions ({data.catalogItems?.length} items)</span>
+               <span className="text-sm font-serif">₱{breakdown.aLaCarteTotal.toLocaleString()}</span>
+            </div>
+          )}
+
+          {breakdown.secondaryChefTotal > 0 && (
+            <div className="flex justify-between items-center">
+               <span className="text-xs font-serif opacity-70">Secondary Artisan Logistics</span>
+               <span className="text-sm font-serif">₱{breakdown.secondaryChefTotal.toLocaleString()}</span>
+            </div>
+          )}
         </div>
-        <h5 className="text-[8px] uppercase tracking-[0.4em] text-[#D4AF37] font-black mb-3 text-center">Consultation Notes</h5>
-        <p className="text-lg font-serif italic text-center max-w-2xl mx-auto leading-relaxed opacity-80 line-clamp-3">
-          "{data.notes || "This experience is poised for creative chef intervention without further constraints."}"
-        </p>
+
+        {/* Signature Section */}
+        <div className="relative border border-border p-8 bg-card/5 flex flex-col justify-center items-center h-full">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-4">
+            <Target size={16} className="text-[#D4AF37] opacity-40" />
+          </div>
+          <h5 className="text-[8px] uppercase tracking-[0.4em] text-[#D4AF37] font-black mb-3 text-center">Consultation Notes</h5>
+          <p className="text-base font-serif italic text-center max-w-md mx-auto leading-relaxed opacity-80 line-clamp-3">
+            "{data.notes || "This experience is poised for creative chef intervention without further constraints."}"
+          </p>
+        </div>
       </div>
+
     </div>
   );
 }

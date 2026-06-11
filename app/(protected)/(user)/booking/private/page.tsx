@@ -27,9 +27,9 @@ export default function PrivateEventForm() {
     hostName: "", phone: "", countryCode: "+63", city: "", province: "", address: "",
     eventDate: "", eventEndDate: "", time: "Evening", 
     pax: { adults: 0, teens: 0, seniors: 0, children: 0 },
-    direction: "Modern Filipino", catalogItems: [],
-    budget_min: "", budget_max: "", budgetFlexible: false, // FIX 1: Aligned keys to snake_case
-    allergies: [], customAllergy: "", 
+    direction: "Modern Filipino", isCustomFusion: false, catalogItems: [] as any[],
+    budget_min: "", budget_max: "", budgetFlexible: false, 
+    allergies: [] as string[], customAllergy: "", 
     serviceTier: "Standard", notes: ""
   });
 
@@ -37,6 +37,47 @@ export default function PrivateEventForm() {
 
   const nextStep = () => setStep(s => Math.min(s + 1, 7));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
+
+  // --- PRICING ENGINE ---
+  const calculatePricingBreakdown = () => {
+    // 1. Base Service Tier Rates
+    const TIER_RATES: Record<string, number> = { Standard: 2000, Premium: 2500, Luxury: 4000 };
+    const tierRate = TIER_RATES[formData.serviceTier] || 2000;
+    
+    // 2. Pax Multipliers (Children cost 50% of base rate)
+    const adultPax = (parseInt(String(formData.pax.adults)) || 0) + 
+                     (parseInt(String(formData.pax.teens)) || 0) + 
+                     (parseInt(String(formData.pax.seniors)) || 0);
+    const childPax = parseInt(String(formData.pax.children)) || 0;
+    const totalPaxCount = adultPax + childPax;
+    
+    const weightedGuestCount = (adultPax * 1.0) + (childPax * 0.5);
+    const baseTotal = weightedGuestCount * tierRate;
+    
+    // 3. Culinary Premiums
+    const culinaryPremium = formData.isCustomFusion ? 1500 : 0;
+    
+    // 4. A La Carte & Secondary Chef Logistics
+    let aLaCarteTotal = 0;
+    let secondaryChefTotal = 0;
+    const uniqueChefs = new Set();
+    
+    formData.catalogItems.forEach((item: any) => {
+      aLaCarteTotal += (item.base_price || 0) * totalPaxCount; // Multiplied by total headcount
+      if (item.custom_chef_id) uniqueChefs.add(item.custom_chef_id);
+    });
+    
+    // Flat ₱1,000 logistics fee for every additional artisan required
+    secondaryChefTotal = uniqueChefs.size * 1000; 
+    
+    const grandTotal = baseTotal + culinaryPremium + aLaCarteTotal + secondaryChefTotal;
+    
+    return {
+      adultPax, childPax, totalPaxCount, weightedGuestCount,
+      tierRate, baseTotal, culinaryPremium, aLaCarteTotal, 
+      secondaryChefTotal, grandTotal
+    };
+  };
 
   const canContinue = () => {
     switch (step) {
@@ -47,7 +88,6 @@ export default function PrivateEventForm() {
         const total = Object.values(formData.pax).reduce((a, b) => a + (parseInt(b.toString()) || 0), 0);
         return total > 0 && formData.direction;
       case 5: 
-        // FIX 2: Updated validation references to match state
         const min = parseInt(formData.budget_min.replace(/\D/g, "") || "0");
         const max = parseInt(formData.budget_max.replace(/\D/g, "") || "0");
         return formData.budget_min && formData.budget_max && max > min;
@@ -64,10 +104,7 @@ export default function PrivateEventForm() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Unauthorized");
 
-      const totalPaxCount = Object.values(formData.pax).reduce(
-        (acc: number, val: any) => acc + (parseInt(val) || 0), 
-        0
-      );
+      const breakdown = calculatePricingBreakdown();
 
       const dbPayload = {
         user_id: user.id,
@@ -75,45 +112,37 @@ export default function PrivateEventForm() {
         occasion: formData.occasion,
         custom_occasion: formData.occasion === "Other" ? formData.customOccasion : null,
         
-        // Logistics
         recipient_name: formData.hostName,
         phone_number: `${formData.countryCode}${formData.phone}`,
         location_city: formData.city,
         location_address: formData.address,
         
-        // Schedule & Scale
         event_date: formData.eventDate,
         event_end_date: formData.eventEndDate || null,
         event_time_pref: formData.time,
-        guest_count: totalPaxCount,
+        guest_count: breakdown.totalPaxCount,
         
-        // Culinary
         selected_menu_theme: formData.direction,
+        is_custom_fusion: formData.isCustomFusion, // Ensure your DB accepts this
         catalog_selections: formData.catalogItems, 
         allergies: formData.allergies,
         custom_allergy: formData.customAllergy,
         
-        // Finances & Tier
-        // FIX 3: Updated reference values here to point to snake_case state parameters
         budget_min: parseFloat(formData.budget_min.toString().replace(/\D/g, "")) || 0,
         budget_max: parseFloat(formData.budget_max.toString().replace(/\D/g, "")) || 0,
         budget_flexible: formData.budgetFlexible,
         service_package: formData.serviceTier,
+        projected_cost: breakdown.grandTotal, // The exact calculated formula amount
         
-        // Meta & Defaults
         booking_type: 'Private Event',
         status: 'open',
         notes: formData.notes,
         payment_status: 'unpaid'
       };
 
-      const { error } = await supabase
-        .from('bookings')
-        .insert([dbPayload]);
-
+      const { error } = await supabase.from('bookings').insert([dbPayload]);
       if (error) throw error;
 
-      // Success redirect
       router.push("/user-dashboard?success=true");
 
     } catch (error) {
@@ -123,6 +152,8 @@ export default function PrivateEventForm() {
       setIsSubmitting(false);
     }
   };
+
+  const pricingBreakdown = calculatePricingBreakdown();
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -144,7 +175,7 @@ export default function PrivateEventForm() {
             {step === 4 && <Step4Culinary data={formData} update={updateData} onOpenCatalog={() => setIsCatalogOpen(true)} />}
             {step === 5 && <Step5Finances data={formData} update={updateData} />}
             {step === 6 && <Step6Notes data={formData} update={updateData} />}
-            {step === 7 && <Step7Summary data={formData} />}
+            {step === 7 && <Step7Summary data={formData} breakdown={pricingBreakdown} />}
           </StepAnimation>
         </AnimatePresence>
       </main>

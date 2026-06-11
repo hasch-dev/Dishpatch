@@ -1,21 +1,50 @@
 .
+├── .env
+├── .gitignore
+├── .next
+│   └── dev
+│       ├── build-manifest.json
+│       ├── cache
+│       ├── fallback-build-manifest.json
+│       ├── lock
+│       ├── logs
+│       ├── package.json
+│       ├── prerender-manifest.json
+│       ├── routes-manifest.json
+│       ├── server
+│       ├── static
+│       ├── trace
+│       └── types
+├── .npmrc
 ├── AGENTS.md
+├── CLAUDE.md
+├── README.md
 ├── app
-│   ├── actions
-│   │   ├── booking-actions.ts
-│   │   ├── inventory-actions.ts
-│   │   ├── mark-read.ts
-│   │   └── send-message.ts
 │   ├── (additionals)
 │   │   ├── gallery
 │   │   ├── products
 │   │   └── stockhouse
 │   ├── (admin)
+│   │   ├── (nav-admin-pages)
 │   │   ├── admin-dashboard
 │   │   ├── distributions
 │   │   ├── inventory
+│   │   └── layout.tsx
+│   ├── (protected)
+│   │   ├── (chef)
+│   │   ├── (user)
+│   │   ├── calendar
 │   │   ├── layout.tsx
-│   │   └── (nav-admin-pages)
+│   │   ├── messages
+│   │   ├── partners
+│   │   ├── payments
+│   │   ├── profile
+│   │   └── settings
+│   ├── actions
+│   │   ├── booking-actions.ts
+│   │   ├── inventory-actions.ts
+│   │   ├── mark-read.ts
+│   │   └── send-message.ts
 │   ├── api
 │   │   ├── bookings
 │   │   ├── chats
@@ -35,18 +64,7 @@
 │   │   └── update-password
 │   ├── globals.css
 │   ├── layout.tsx
-│   ├── page.tsx
-│   └── (protected)
-│       ├── calendar
-│       ├── (chef)
-│       ├── layout.tsx
-│       ├── messages
-│       ├── partners
-│       ├── payments
-│       ├── profile
-│       ├── settings
-│       └── (user)
-├── CLAUDE.md
+│   └── page.tsx
 ├── components
 │   ├── accept-quote-dialog.tsx
 │   ├── admin
@@ -60,19 +78,22 @@
 │   │   └── upload-gallery-dialog.tsx
 │   ├── app-sidebar.tsx
 │   ├── booking
+│   │   ├── StepAnimation.tsx
 │   │   ├── booking-footer.tsx
 │   │   ├── booking-header.tsx
 │   │   ├── consultation
 │   │   ├── luxury-summary.tsx
 │   │   ├── private-event
-│   │   ├── shared
-│   │   └── StepAnimation.tsx
+│   │   └── shared
 │   ├── catalog
 │   │   └── culinary-catalog.tsx
 │   ├── chat
 │   │   └── ChefQuoteAction.tsx
 │   ├── chef
-│   │   └── marketplace-card.tsx
+│   │   ├── booking-review-drawer.tsx
+│   │   ├── booking-review-modal.tsx
+│   │   ├── marketplace-card.tsx
+│   │   └── marketplace-controls.tsx
 │   ├── distributions
 │   │   ├── distribution-stats.tsx
 │   │   ├── matrix-controls.tsx
@@ -111,26 +132,20 @@
 │   │   ├── ingredient-selector.tsx
 │   │   └── pricing-strategy-input.tsx
 │   ├── messaging
-│   │   ├── booking-context-sidebar.tsx
-│   │   ├── booking-sidebar.tsx
-│   │   ├── chat-header.tsx
 │   │   ├── conversation-client.tsx
 │   │   ├── conversation-feed.tsx
-│   │   ├── conversation-header.tsx
 │   │   ├── conversation-input.tsx
 │   │   ├── conversation-item.tsx
-│   │   ├── conversation-list-item.tsx
 │   │   ├── conversation-list.tsx
 │   │   ├── conversation-shell.tsx
+│   │   ├── conversation-tracker.tsx
 │   │   ├── empty-state.tsx
+│   │   ├── feed
 │   │   ├── inbox-item.tsx
 │   │   ├── inbox-list.tsx
 │   │   ├── inbox-shell.tsx
 │   │   ├── message-bubble.tsx
-│   │   ├── message-input.tsx
 │   │   ├── message-item.tsx
-│   │   ├── support-context-sidebar.tsx
-│   │   ├── support-sidebar.tsx
 │   │   └── unread-badge.tsx
 │   ├── mobile-sidebar.tsx
 │   ├── modify-terms-dialog.tsx
@@ -201,8 +216,8 @@
 │   │   ├── table.tsx
 │   │   ├── tabs.tsx
 │   │   ├── textarea.tsx
-│   │   ├── toaster.tsx
 │   │   ├── toast.tsx
+│   │   ├── toaster.tsx
 │   │   ├── toggle-group.tsx
 │   │   ├── toggle.tsx
 │   │   ├── tooltip.tsx
@@ -224,9 +239,7 @@
 │   ├── food-categories.ts
 │   ├── ingredients.ts
 │   └── product-classifications.ts
-├── .env
 ├── eslint.config.mjs
-├── .gitignore
 ├── hooks
 │   ├── use-conversation-realtime.ts
 │   ├── use-conversation.ts
@@ -255,31 +268,17 @@
 │   │   └── server.ts
 │   ├── useRequireAuth.ts
 │   └── utils.ts
-├── .next
-│   └── dev
-│       ├── build-manifest.json
-│       ├── cache
-│       ├── fallback-build-manifest.json
-│       ├── lock
-│       ├── logs
-│       ├── package.json
-│       ├── prerender-manifest.json
-│       ├── routes-manifest.json
-│       ├── server
-│       ├── static
-│       ├── trace
-│       └── types
+├── next-env.d.ts
 ├── next.config.mjs
 ├── next.config.ts
-├── next-env.d.ts
-├── .npmrc
-├── package.json
 ├── package-lock.json
+├── package.json
 ├── pnpm-lock.yaml
 ├── pnpm-workspace.yaml
 ├── postcss.config.mjs
 ├── public
 │   ├── dishpatch-pics
+│   │   ├── 1.jpg
 │   │   ├── 10.jpg
 │   │   ├── 11.jpg
 │   │   ├── 12.jpg
@@ -290,9 +289,8 @@
 │   │   ├── 17.jpg
 │   │   ├── 18.jpg
 │   │   ├── 19.jpg
-│   │   ├── 1.jpg
-│   │   ├── 20.jpg
 │   │   ├── 2.jpg
+│   │   ├── 20.jpg
 │   │   ├── 3.jpg
 │   │   ├── 4.jpg
 │   │   ├── 5.jpg
@@ -304,7 +302,6 @@
 │       ├── darklogotext.png
 │       ├── dishpatchlogo.png
 │       └── lightlogotext.png
-├── README.md
 ├── scripts
 │   ├── 001_create_tables.sql
 │   ├── 002_create_trigger.sql
@@ -316,4 +313,4 @@
 ├── test
 └── tsconfig.json
 
-74 directories, 243 files
+75 directories, 239 files
