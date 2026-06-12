@@ -25,7 +25,8 @@ export default function PrivateEventForm() {
   const [formData, setFormData] = useState({
     eventName: "", occasion: "", customOccasion: "", 
     hostName: "", phone: "", countryCode: "+63", city: "", province: "", address: "",
-    eventDate: "", eventEndDate: "", time: "Evening", 
+    eventDate: "", eventEndDate: "", 
+    timeSlot: "Dinner", customTime: "19:00",
     pax: { adults: 0, teens: 0, seniors: 0, children: 0 },
     direction: "Modern Filipino", isCustomFusion: false, catalogItems: [] as any[],
     budget_min: "", budget_max: "", budgetFlexible: false, 
@@ -40,34 +41,30 @@ export default function PrivateEventForm() {
 
   // --- PRICING ENGINE ---
   const calculatePricingBreakdown = () => {
-    // 1. Base Service Tier Rates
     const TIER_RATES: Record<string, number> = { Standard: 2000, Premium: 2500, Luxury: 4000 };
     const tierRate = TIER_RATES[formData.serviceTier] || 2000;
     
-    // 2. Pax Multipliers (Children cost 50% of base rate)
     const adultPax = (parseInt(String(formData.pax.adults)) || 0) + 
                      (parseInt(String(formData.pax.teens)) || 0) + 
                      (parseInt(String(formData.pax.seniors)) || 0);
     const childPax = parseInt(String(formData.pax.children)) || 0;
     const totalPaxCount = adultPax + childPax;
     
-    const weightedGuestCount = (adultPax * 1.0) + (childPax * 0.5);
+    // 70% Discount applied to children (They pay 30% of the base tier rate)
+    const weightedGuestCount = (adultPax * 1.0) + (childPax * 0.3);
     const baseTotal = weightedGuestCount * tierRate;
     
-    // 3. Culinary Premiums
     const culinaryPremium = formData.isCustomFusion ? 1500 : 0;
     
-    // 4. A La Carte & Secondary Chef Logistics
     let aLaCarteTotal = 0;
     let secondaryChefTotal = 0;
     const uniqueChefs = new Set();
     
     formData.catalogItems.forEach((item: any) => {
-      aLaCarteTotal += (item.base_price || 0) * totalPaxCount; // Multiplied by total headcount
+      aLaCarteTotal += (item.base_price || 0) * totalPaxCount; 
       if (item.custom_chef_id) uniqueChefs.add(item.custom_chef_id);
     });
     
-    // Flat ₱1,000 logistics fee for every additional artisan required
     secondaryChefTotal = uniqueChefs.size * 1000; 
     
     const grandTotal = baseTotal + culinaryPremium + aLaCarteTotal + secondaryChefTotal;
@@ -83,7 +80,8 @@ export default function PrivateEventForm() {
     switch (step) {
       case 1: return formData.eventName && (formData.occasion === "Other" ? formData.customOccasion : formData.occasion);
       case 2: return formData.hostName && formData.phone && formData.city && formData.address;
-      case 3: return formData.eventDate; 
+      // REQUIRES BOTH A SLOT AND EXACT TIME NOW
+      case 3: return formData.eventDate && formData.timeSlot && formData.customTime;
       case 4: 
         const total = Object.values(formData.pax).reduce((a, b) => a + (parseInt(b.toString()) || 0), 0);
         return total > 0 && formData.direction;
@@ -119,11 +117,12 @@ export default function PrivateEventForm() {
         
         event_date: formData.eventDate,
         event_end_date: formData.eventEndDate || null,
-        event_time_pref: formData.time,
+        // SAVES AS: "Dinner at 19:00"
+        event_time_pref: `${formData.timeSlot} at ${formData.customTime}`,
         guest_count: breakdown.totalPaxCount,
         
         selected_menu_theme: formData.direction,
-        is_custom_fusion: formData.isCustomFusion, // Ensure your DB accepts this
+        is_custom_fusion: formData.isCustomFusion,
         catalog_selections: formData.catalogItems, 
         allergies: formData.allergies,
         custom_allergy: formData.customAllergy,
@@ -132,7 +131,7 @@ export default function PrivateEventForm() {
         budget_max: parseFloat(formData.budget_max.toString().replace(/\D/g, "")) || 0,
         budget_flexible: formData.budgetFlexible,
         service_package: formData.serviceTier,
-        projected_cost: breakdown.grandTotal, // The exact calculated formula amount
+        projected_cost: breakdown.grandTotal,
         
         booking_type: 'Private Event',
         status: 'open',
